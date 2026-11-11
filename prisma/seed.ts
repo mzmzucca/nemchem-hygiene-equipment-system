@@ -34,7 +34,7 @@ async function main() {
       name: "System Administrator",
       password: pw("admin123"),
       role: "ADMIN",
-      phone: "+27 11 000 0001",
+      phone: "+258 21 300 0001",
       active: true,
     },
   })
@@ -44,7 +44,7 @@ async function main() {
       name: "Operations Manager",
       password: pw("manager123"),
       role: "MANAGER",
-      phone: "+27 11 000 0002",
+      phone: "+258 21 300 0002",
       active: true,
     },
   })
@@ -54,7 +54,7 @@ async function main() {
       name: "João Macamo",
       password: pw("tech123"),
       role: "TECHNICIAN",
-      phone: "+27 84 111 2222",
+      phone: "+258 84 111 2222",
       active: true,
     },
   })
@@ -64,7 +64,7 @@ async function main() {
       name: "Carlos Mondlane",
       password: pw("tech123"),
       role: "TECHNICIAN",
-      phone: "+27 84 333 4444",
+      phone: "+258 84 333 4444",
       active: true,
     },
   })
@@ -74,7 +74,7 @@ async function main() {
       name: "Ana Cossa",
       password: pw("tech123"),
       role: "TECHNICIAN",
-      phone: "+27 84 555 6666",
+      phone: "+258 84 555 6666",
       active: true,
     },
   })
@@ -115,16 +115,16 @@ async function main() {
 
   // ===== CUSTOMERS & LOCATIONS =====
   const customersData = [
-    { name: "Hotel Polana", code: "CUST-001", category: "HOTEL", address: "Av. Julius Nyerere 1380", city: "Maputo", contactPerson: "Filipe Couto", phone: "+27 21 424 0001", email: "fm@hotelpolana.co" },
-    { name: "Restaurant Costa do Sol", code: "CUST-002", category: "RESTAURANT", address: "Marginal, Costa do Sol", city: "Maputo", contactPerson: "Isabel Marques", phone: "+27 21 424 0002", email: "isabel@costadosol.co" },
-    { name: "Maputo Central Hospital", code: "CUST-003", category: "HOSPITAL", address: "Av. Eduardo Mondlane", city: "Maputo", contactPerson: "Dr. Hortencia Cuna", phone: "+27 21 424 0003", email: "hcuna@mch.gov" },
-    { name: "Matola Business Park", code: "CUST-004", category: "OFFICE", address: "EN2, Matola", city: "Matola", contactPerson: "Rui Tembe", phone: "+27 21 424 0004", email: "rtembe@mbp.co" },
-    { name: "Maputo Shopping Centre", code: "CUST-005", category: "SHOPPING_CENTRE", address: "Av. 24 de Julho", city: "Maputo", contactPerson: "Sandra Langa", phone: "+27 21 424 0005", email: "sandra@maputoshopping.co" },
-    { name: "Radisson Blu Hotel", code: "CUST-006", category: "HOTEL", address: "Av. Marginal 6465", city: "Maputo", contactPerson: "Pedro Almeida", phone: "+27 21 424 0006", email: "pedro@radisson.co" },
-    { name: "Piri Piri Grill House", code: "CUST-007", category: "RESTAURANT", address: "Av. Mao Tse Tung", city: "Maputo", contactPerson: "Lúcia Sumbana", phone: "+27 21 424 0007", email: "lucia@piripiri.co" },
-    { name: "Clínica Cruz Azul", code: "CUST-008", category: "HOSPITAL", address: "Av. Agostinho Neto", city: "Maputo", contactPerson: "Dr. Manuel Banze", phone: "+27 21 424 0008", email: "banze@cruzazul.co" },
-    { name: "Edificio BCI Sede", code: "CUST-009", category: "OFFICE", address: "Av. 25 de Setembro", city: "Maputo", contactPerson: "Tânia Mucavele", phone: "+27 21 424 0009", email: "tania@bci.co" },
-    { name: "Garden Square Mall", code: "CUST-010", category: "SHOPPING_CENTRE", address: "Rua da Argélia", city: "Maputo", contactPerson: "Hélder Nhaca", phone: "+27 21 424 0010", email: "helder@gardensquare.co" },
+    { name: "Hotel Polana", code: "CUST-001", category: "HOTEL", address: "Av. Julius Nyerere 1380", city: "Maputo", contactPerson: "Filipe Couto", phone: "+258 21 424 0001", email: "fm@hotelpolana.co" },
+    { name: "Restaurant Costa do Sol", code: "CUST-002", category: "RESTAURANT", address: "Marginal, Costa do Sol", city: "Maputo", contactPerson: "Isabel Marques", phone: "+258 21 424 0002", email: "isabel@costadosol.co" },
+    { name: "Maputo Central Hospital", code: "CUST-003", category: "HOSPITAL", address: "Av. Eduardo Mondlane", city: "Maputo", contactPerson: "Dr. Hortencia Cuna", phone: "+258 21 424 0003", email: "hcuna@mch.gov" },
+    { name: "Matola Business Park", code: "CUST-004", category: "OFFICE", address: "EN2, Matola", city: "Matola", contactPerson: "Rui Tembe", phone: "+258 21 424 0004", email: "rtembe@mbp.co" },
+    { name: "Maputo Shopping Centre", code: "CUST-005", category: "SHOPPING_CENTRE", address: "Av. 24 de Julho", city: "Maputo", contactPerson: "Sandra Langa", phone: "+258 21 424 0005", email: "sandra@maputoshopping.co" },
+    { name: "Radisson Blu Hotel", code: "CUST-006", category: "HOTEL", address: "Av. Marginal 6465", city: "Maputo", contactPerson: "Pedro Almeida", phone: "+258 21 424 0006", email: "pedro@radisson.co" },
+    { name: "Piri Piri Grill House", code: "CUST-007", category: "RESTAURANT", address: "Av. Mao Tse Tung", city: "Maputo", contactPerson: "Lúcia Sumbana", phone: "+258 21 424 0007", email: "lucia@piripiri.co" },
+    { name: "Clínica Cruz Azul", code: "CUST-008", category: "HOSPITAL", address: "Av. Agostinho Neto", city: "Maputo", contactPerson: "Dr. Manuel Banze", phone: "+258 21 424 0008", email: "banze@cruzazul.co" },
+    { name: "Edificio BCI Sede", code: "CUST-009", category: "OFFICE", address: "Av. 25 de Setembro", city: "Maputo", contactPerson: "Tânia Mucavele", phone: "+258 21 424 0009", email: "tania@bci.co" },
+    { name: "Garden Square Mall", code: "CUST-010", category: "SHOPPING_CENTRE", address: "Rua da Argélia", city: "Maputo", contactPerson: "Hélder Nhaca", phone: "+258 21 424 0010", email: "helder@gardensquare.co" },
   ]
 
   const customers = []

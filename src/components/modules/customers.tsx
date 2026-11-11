@@ -443,7 +443,7 @@ function CustomerFormDialog({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="c-phone">Phone</Label>
-              <Input id="c-phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+27 21 555 0100" />
+              <Input id="c-phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+258 21 555 0100" />
             </div>
           </div>
 
