@@ -1,0 +1,53 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# database
+/db/
+*.db
+*.db-journal
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev.log
+server.log
+
+# env files
+.env
+.env*.local
+
+# misc
+.DS_Store
+*.pem
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# agent context
+/agent-ctx
+
+# tests
+/tests
+
+# upload directory (user-provided source files)
+/upload
+
+# download artifacts (kept in repo as docs instead)
+# /download
+
+# os / editor
+Thumbs.db
+.idea/
+.vscode/
+*.swp

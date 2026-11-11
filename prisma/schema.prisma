@@ -1,0 +1,361 @@
+// Hygiene Equipment Management, Inventory & Field Operations System
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// USERS & AUTH
+// ============================================================
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("TECHNICIAN") // ADMIN | MANAGER | TECHNICIAN
+  phone     String?
+  active    Boolean  @default(true)
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contractsAssigned   Contract[]   @relation("ContractTechnician")
+  visitsAssigned      Visit[]
+  inspections         Inspection[]
+  batteryReplacements BatteryReplacement[]
+  stockMovements      StockMovement[]
+  technicianStock     TechnicianStock[]
+  consumptionRecords  ConsumptionRecord[]
+}
+
+// ============================================================
+// CUSTOMERS & LOCATIONS
+// ============================================================
+model Customer {
+  id            String   @id @default(cuid())
+  name          String
+  code          String   @unique
+  category      String   @default("OTHER") // HOTEL | RESTAURANT | HOSPITAL | OFFICE | SHOPPING_CENTRE | OTHER
+  address       String?
+  city          String?
+  contactPerson String?
+  phone         String?
+  email         String?
+  notes         String?
+  status        String   @default("ACTIVE") // ACTIVE | INACTIVE
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  locations   CustomerLocation[]
+  contracts   Contract[]
+  equipment   Equipment[]
+  visits      Visit[]
+  consumption ConsumptionRecord[]
+  batteries   BatteryReplacement[]
+}
+
+model CustomerLocation {
+  id         String   @id @default(cuid())
+  customerId String
+  name       String
+  floor      String?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  customer  Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  equipment Equipment[]
+}
+
+// ============================================================
+// EQUIPMENT CATEGORIES
+// ============================================================
+model EquipmentCategory {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  usesBatteries Boolean @default(true)
+  createdAt    DateTime @default(now())
+
+  equipment           Equipment[]
+  consumptionRates    EquipmentConsumptionRate[]
+}
+
+// ============================================================
+// EQUIPMENT & HISTORY
+// ============================================================
+model Equipment {
+  id                   String   @id @default(cuid())
+  name                 String
+  categoryId           String
+  brand                String?
+  model                String?
+  serialNumber         String   @unique
+  purchaseDate         DateTime?
+  installationDate     DateTime?
+  customerId           String?
+  contractId           String?
+  locationId           String?
+  batteryType          String?
+  operationalStatus    String   @default("OPERATIONAL") // OPERATIONAL | NOT_OPERATIONAL | DAMAGED | UNDER_MAINTENANCE | MISSING | NEEDS_REPLACEMENT | DECOMMISSIONED
+  installationStatus   String   @default("INSTALLATION_PENDING") // CORRECTLY_INSTALLED | INCORRECTLY_INSTALLED | NEEDS_REPOSITIONING | INSTALLATION_PENDING
+  currentBatteryLevel  String   @default("UNKNOWN") // FULL | SEVENTY_FIVE | FIFTY | TWENTY_FIVE | EMPTY | UNKNOWN | NA
+  lastBatteryReplacement DateTime?
+  notes                String?
+  qrCode               String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  category    EquipmentCategory     @relation(fields: [categoryId], references: [id])
+  customer    Customer?             @relation(fields: [customerId], references: [id])
+  contract    Contract?             @relation(fields: [contractId], references: [id])
+  location    CustomerLocation?     @relation(fields: [locationId], references: [id])
+  history     EquipmentHistory[]
+  inspections Inspection[]
+  batteries   BatteryReplacement[]
+  consumption ConsumptionRecord[]
+
+  @@index([customerId])
+  @@index([contractId])
+}
+
+model EquipmentHistory {
+  id          String   @id @default(cuid())
+  equipmentId String
+  eventType   String // REGISTRATION | INSTALLATION | CUSTOMER_ASSIGNMENT | CONTRACT_ASSIGNMENT | INSPECTION | MAINTENANCE | BATTERY_REPLACEMENT | CONSUMABLE_USAGE | RELOCATION | REPLACEMENT | DECOMMISSIONING
+  description String
+  date        DateTime @default(now())
+  performedBy String?
+  notes       String?
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// CONTRACTS (Rental & FOL)
+// ============================================================
+model Contract {
+  id             String   @id @default(cuid())
+  contractNumber String   @unique
+  customerId     String
+  type           String   @default("RENTAL") // RENTAL | FOL
+  startDate      DateTime
+  endDate        DateTime
+  status         String   @default("ACTIVE") // ACTIVE | EXPIRED | TERMINATED | SUSPENDED | PENDING
+  visitFrequency String   @default("MONTHLY") // DAILY | WEEKLY | BIWEEKLY | MONTHLY | CUSTOM
+  customDays     Int? // for custom frequency
+  technicianId   String?
+  monthlyFee     Float    @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  technician User?      @relation("ContractTechnician", fields: [technicianId], references: [id])
+  equipment  Equipment[]
+  visits     Visit[]
+  batteries  BatteryReplacement[]
+  consumption ConsumptionRecord[]
+}
+
+// ============================================================
+// VISITS
+// ============================================================
+model Visit {
+  id            String   @id @default(cuid())
+  customerId    String
+  contractId    String?
+  scheduledDate DateTime
+  scheduledTime String?
+  technicianId  String?
+  visitType     String   @default("INSPECTION") // INSPECTION | MAINTENANCE | INSTALLATION | REPLACEMENT | OTHER
+  status        String   @default("SCHEDULED") // SCHEDULED | IN_PROGRESS | COMPLETED | PENDING | CANCELLED | OVERDUE
+  notes         String?
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  customer    Customer      @relation(fields: [customerId], references: [id])
+  contract    Contract?     @relation(fields: [contractId], references: [id])
+  technician  User?         @relation(fields: [technicianId], references: [id])
+  inspections Inspection[]
+  consumption ConsumptionRecord[]
+  batteries   BatteryReplacement[]
+
+  @@index([customerId])
+  @@index([contractId])
+  @@index([technicianId])
+}
+
+// ============================================================
+// INSPECTIONS
+// ============================================================
+model Inspection {
+  id                         String   @id @default(cuid())
+  visitId                    String
+  equipmentId                String
+  technicianId               String?
+  equipmentPresent           Boolean  @default(true)
+  correctlyInstalled         Boolean  @default(true)
+  correctlyPositioned        Boolean  @default(true)
+  workingProperly            Boolean  @default(true)
+  equipmentClean             Boolean  @default(true)
+  batteryAvailable           String   @default("N/A") // YES | NO | N/A
+  batteryLevel               String   @default("UNKNOWN") // FULL | SEVENTY_FIVE | FIFTY | TWENTY_FIVE | EMPTY | UNKNOWN | NA
+  batteryReplacementRequired Boolean  @default(false)
+  consumablesAvailable       Boolean  @default(true)
+  maintenanceRequired        Boolean  @default(false)
+  equipmentDamaged           Boolean  @default(false)
+  result                     String   @default("PASSED") // PASSED | PASSED_WITH_OBSERVATIONS | FAILED | MAINTENANCE_REQUIRED | REPLACEMENT_REQUIRED
+  comments                   String?
+  inspectedAt                DateTime @default(now())
+  createdAt                  DateTime @default(now())
+
+  visit     Visit     @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+  technician User?    @relation(fields: [technicianId], references: [id])
+  photos    InspectionPhoto[]
+}
+
+model InspectionPhoto {
+  id            String   @id @default(cuid())
+  inspectionId  String
+  imageUrl      String
+  type          String   @default("GENERAL") // BEFORE | AFTER | GENERAL
+  caption       String?
+  createdAt     DateTime @default(now())
+
+  inspection Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// BATTERY MANAGEMENT
+// ============================================================
+model BatteryReplacement {
+  id             String   @id @default(cuid())
+  equipmentId    String
+  customerId     String?
+  contractId     String?
+  visitId        String?
+  previousLevel  String   @default("UNKNOWN")
+  newLevel       String   @default("FULL")
+  batteryType    String?
+  quantityUsed   Int      @default(0)
+  replacementDate DateTime @default(now())
+  technicianId   String?
+  notes          String?
+
+  equipment  Equipment @relation(fields: [equipmentId], references: [id])
+  customer   Customer?  @relation(fields: [customerId], references: [id])
+  contract   Contract?  @relation(fields: [contractId], references: [id])
+  visit      Visit?     @relation(fields: [visitId], references: [id])
+  technician User?      @relation(fields: [technicianId], references: [id])
+}
+
+// ============================================================
+// CONSUMABLES & STOCK
+// ============================================================
+model ConsumableCategory {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  products Product[]
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  name           String
+  categoryId     String
+  sku            String   @unique
+  unitOfMeasurement String @default("unit") // unit | box | liter | kg | pack
+  currentStock   Int      @default(0)
+  minimumStock   Int      @default(0)
+  maximumStock   Int      @default(0)
+  unitCost       Float    @default(0)
+  supplier       String?
+  status         String   @default("ACTIVE") // ACTIVE | INACTIVE
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  category       ConsumableCategory    @relation(fields: [categoryId], references: [id])
+  movements      StockMovement[]
+  consumption    ConsumptionRecord[]
+  technicianStock TechnicianStock[]
+  consumptionRates EquipmentConsumptionRate[]
+
+  @@index([categoryId])
+}
+
+model StockMovement {
+  id          String   @id @default(cuid())
+  productId   String
+  quantity    Int
+  movementType String // ENTRY | EXIT | ADJUSTMENT | TRANSFER | ALLOCATION | RETURN
+  date        DateTime @default(now())
+  userId      String?
+  reference   String?
+  notes       String?
+
+  product Product @relation(fields: [productId], references: [id])
+  user    User?   @relation(fields: [userId], references: [id])
+}
+
+model TechnicianStock {
+  id           String @id @default(cuid())
+  productId    String
+  technicianId String
+  quantity     Int    @default(0)
+  updatedAt    DateTime @updatedAt
+
+  product    Product @relation(fields: [productId], references: [id])
+  technician User    @relation(fields: [technicianId], references: [id])
+
+  @@unique([productId, technicianId])
+}
+
+model ConsumptionRecord {
+  id           String   @id @default(cuid())
+  productId    String
+  customerId   String?
+  contractId   String?
+  equipmentId  String?
+  visitId      String?
+  technicianId String?
+  quantity     Int
+  date         DateTime @default(now())
+  notes        String?
+
+  product    Product    @relation(fields: [productId], references: [id])
+  customer   Customer?  @relation(fields: [customerId], references: [id])
+  contract   Contract?  @relation(fields: [contractId], references: [id])
+  equipment  Equipment? @relation(fields: [equipmentId], references: [id])
+  visit      Visit?     @relation(fields: [visitId], references: [id])
+  technician User?      @relation(fields: [technicianId], references: [id])
+}
+
+model EquipmentConsumptionRate {
+  id           String   @id @default(cuid())
+  categoryId   String
+  productId    String
+  averageConsumptionPerMonth Float @default(0)
+
+  category EquipmentCategory  @relation(fields: [categoryId], references: [id])
+  product  Product            @relation(fields: [productId], references: [id])
+
+  @@unique([categoryId, productId])
+}
+
+// ============================================================
+// SYSTEM SETTINGS
+// ============================================================
+model SystemSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  updatedAt DateTime @updatedAt
+}

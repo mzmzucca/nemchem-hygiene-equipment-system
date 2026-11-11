@@ -1,12 +1,12 @@
 # NemChem — Hygiene Equipment Management System
 
-> Executive proposal and decision document for the **Hygiene Equipment Management, Inventory and Field Operations System** — prepared for **Sérgio Zucca, Chief Executive Officer, NemChem Moçambique**.
+> A complete, production-ready **Hygiene Equipment Management, Inventory and Field Operations System** for NemChem Moçambique. Executive proposal prepared for **Sérgio Zucca, Chief Executive Officer**.
 
 ---
 
 ## Overview
 
-This repository contains the executive documentation for a centralised platform that enables NemChem to manage all hygiene equipment installed at customer locations — including hotels, restaurants, hospitals, offices and other commercial establishments.
+This repository contains both the **application source code** and the **executive documentation** for a centralised platform that enables NemChem to manage all hygiene equipment installed at customer locations — including hotels, restaurants, hospitals, offices and other commercial establishments.
 
 The system provides complete visibility into:
 
@@ -20,78 +20,207 @@ The system provides complete visibility into:
 
 ---
 
-## Repository Contents
+## Repository Structure
 
 ```
 .
-├── README.md                  # This file
-├── docs/
-│   ├── NemChem_Executive_Proposal_Hygiene_Equipment_System.pdf   # Final executive document (PDF, 13 pages)
-│   ├── NemChem_Executive_Proposal_Hygiene_Equipment_System.docx  # Editable Word version
+├── README.md                          # This file
+├── docs/                              # Executive documents
+│   ├── NemChem_Executive_Proposal_Hygiene_Equipment_System.pdf    # Final executive document (13 pages)
+│   ├── NemChem_Executive_Proposal_Hygiene_Equipment_System.docx   # Editable Word version
 │   └── Apresentacao_Executiva_Sistema_Gestao_Equipamentos_Higiene.pptx  # Original presentation (Portuguese)
-└── assets/
-    └── nemchem_logo.png       # NemChem Moçambique brand logo
+├── assets/
+│   └── nemchem_logo.png               # NemChem Moçambique brand logo
+│
+├── prisma/
+│   ├── schema.prisma                  # Database schema (16 models)
+│   └── seed.ts                        # Seed script with realistic demo data
+├── src/
+│   ├── app/
+│   │   ├── page.tsx                   # Main application entry (single-page app)
+│   │   ├── layout.tsx                 # Root layout
+│   │   ├── globals.css                # Global styles & theme
+│   │   └── api/                       # REST API routes (19 endpoints)
+│   │       ├── dashboard/
+│   │       ├── customers/
+│   │       ├── contracts/
+│   │       ├── equipment/
+│   │       ├── visits/
+│   │       ├── inspections/
+│   │       ├── batteries/
+│   │       ├── products/
+│   │       ├── stock-movements/
+│   │       ├── consumption/
+│   │       ├── technicians/
+│   │       ├── settings/
+│   │       └── ...
+│   ├── components/
+│   │   ├── app-shell.tsx              # Sidebar navigation + layout shell
+│   │   ├── shared.tsx                 # Shared UI components (KPI cards, badges, etc.)
+│   │   ├── providers.tsx              # Theme + React Query providers
+│   │   ├── footer.tsx
+│   │   ├── modules/                   # The 8 application modules
+│   │   │   ├── dashboard.tsx
+│   │   │   ├── customers.tsx
+│   │   │   ├── contracts.tsx
+│   │   │   ├── equipment.tsx
+│   │   │   ├── visits.tsx
+│   │   │   ├── inspections.tsx
+│   │   │   ├── batteries.tsx
+│   │   │   └── consumables.tsx
+│   │   └── ui/                        # shadcn/ui component library
+│   ├── lib/
+│   │   ├── db.ts                      # Prisma client
+│   │   ├── types.ts                   # TypeScript type definitions
+│   │   ├── labels.ts                  # Label maps & color utilities
+│   │   ├── nav-store.ts               # Zustand navigation store
+│   │   └── api.ts                     # API helpers
+│   └── hooks/
+│       ├── use-api.ts                 # React Query data hooks
+│       ├── use-toast.ts
+│       └── use-mobile.ts
+│
+├── package.json
+├── tsconfig.json
+├── next.config.ts
+├── tailwind.config.ts
+├── components.json                    # shadcn/ui config
+├── .env.example                       # Environment variable template
+└── .gitignore
 ```
 
-### Documents
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript 5 |
+| Styling | Tailwind CSS 4 + shadcn/ui (New York) |
+| Database | Prisma ORM (SQLite) |
+| State | Zustand (client) + TanStack Query (server) |
+| Charts | Recharts |
+| Icons | Lucide React |
+| Auth | NextAuth.js v4 (available) |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) 18+ or [Bun](https://bun.sh/) runtime
+- A GitHub account (to clone this repo)
+
+### Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/mzmzucca/nemchem-hygiene-equipment-system.git
+cd nemchem-hygiene-equipment-system
+
+# 2. Install dependencies
+bun install
+# or: npm install
+
+# 3. Set up environment variables
+cp .env.example .env
+
+# 4. Create the database and push the schema
+bun run db:push
+
+# 5. Seed the database with demo data
+bun run prisma/seed.ts
+```
+
+### Running the Application
+
+```bash
+# Start the development server
+bun run dev
+# or: npm run dev
+```
+
+The application will be available at `http://localhost:3000`.
+
+### Available Scripts
+
+| Script | Description |
+|--------|-------------|
+| `bun run dev` | Start the development server (port 3000) |
+| `bun run lint` | Run ESLint to check code quality |
+| `bun run db:push` | Push Prisma schema to the database |
+| `bun run db:generate` | Generate Prisma client |
+| `bun run db:migrate` | Create and apply a database migration |
+| `bun run db:reset` | Reset the database (destructive) |
+
+---
+
+## Application Modules
+
+The system is built as a single-page application with sidebar navigation across 8 interconnected modules:
+
+| Module | Description |
+|--------|-------------|
+| **Dashboard** | 30+ KPIs and 7 live charts across all operational areas |
+| **Customers** | Customer profiles with 7 tabs (contracts, equipment, visits, consumption, batteries, reports) |
+| **Contracts** | Rental & FOL contract management with status transitions and auto-computed visit tracking |
+| **Equipment** | Full asset lifecycle: registration, installation, inspections, maintenance, decommissioning |
+| **Visits** | Monthly calendar + list views with automatic next-visit scheduling |
+| **Inspections** | Mobile-friendly technician inspection workflow with 11-point checklist |
+| **Batteries** | Battery level tracking, replacement workflow, and configurable threshold alerts |
+| **Consumables** | Stock management with estimated vs actual consumption tracking |
+
+---
+
+## Database Schema
+
+The system uses 16 interconnected Prisma models:
+
+- **User** — System users (Admin, Manager, Technician roles)
+- **Customer** / **CustomerLocation** — Customer profiles and site locations
+- **EquipmentCategory** / **Equipment** / **EquipmentHistory** — Asset management with full lifecycle
+- **Contract** — Rental and FOL contracts
+- **Visit** — Technical visit scheduling
+- **Inspection** / **InspectionPhoto** — Field inspection records
+- **BatteryReplacement** — Battery replacement history
+- **ConsumableCategory** / **Product** / **StockMovement** / **ConsumptionRecord** / **EquipmentConsumptionRate** / **TechnicianStock** — Inventory management
+- **SystemSetting** — Configurable system parameters
+
+---
+
+## Executive Documentation
 
 | File | Format | Language | Description |
 |------|--------|----------|-------------|
-| `NemChem_Executive_Proposal_Hygiene_Equipment_System.pdf` | PDF | English | Final CEO-ready executive proposal — translated, NemChem-branded (navy & white) |
+| `NemChem_Executive_Proposal_Hygiene_Equipment_System.pdf` | PDF | English | Final CEO-ready executive proposal — translated, NemChem-branded (navy & white), 13 pages |
 | `NemChem_Executive_Proposal_Hygiene_Equipment_System.docx` | Word | English | Editable version of the executive proposal |
 | `Apresentacao_Executiva_Sistema_Gestao_Equipamentos_Higiene.pptx` | PowerPoint | Portuguese | Original 16-slide executive presentation |
 
----
+### Document Structure (15 sections)
 
-## Document Structure
-
-The executive proposal is organised into 15 sections:
-
-| # | Section | Summary |
-|---|---------|---------|
-| 00 | Executive Summary | Platform overview and the decision requested |
-| 01 | Framing & Meeting Objective | Align, validate, decide |
-| 02 | The Operational Challenge | Five recurring pain points in current operations |
-| 03 | Proposed Vision | From dispersed operation to controlled operation |
-| 04 | Operational Model | The six-stage technical visit cycle |
-| 05 | Proposed Functional Modules | Six domains: customers, equipment, visits, batteries, consumables, reports |
-| 06 | Asset Management | Equipment as the central traceability unit |
-| 07 | Consumables | Estimation vs real consumption vs inventory |
-| 08 | Governance | User profiles and responsibilities |
-| 09 | Management Information | Eight key performance indicators |
-| 10 | Reference Architecture | Proposed technology stack |
-| 11 | Phased Implementation | Four-phase delivery plan |
-| 12 | Risks & Controls | Six risks with mitigations |
-| 13 | Decisions to Be Taken | Seven decisions required from stakeholders |
-| 14 | Proposed Next Steps | Four immediate actions to proceed |
-
----
-
-## Key Features of the Proposed System
-
-### Equipment Lifecycle Management
-Every equipment item receives a unique identifier, QR code, and a complete history — from registration and installation through inspections, maintenance, battery replacements and eventual decommissioning.
-
-### Contract Management
-Supports both **Rental** contracts (customer pays for equipment rental) and **FOL** (Free on Loan) contracts, with automated visit scheduling based on contract frequency.
-
-### Field Inspections
-A mobile-friendly inspection interface for technicians, featuring an 11-point checklist, photographic evidence capture, and automatic equipment status updates.
-
-### Battery Management
-Configurable per equipment category, with level tracking, replacement workflows, and threshold-based alerts.
-
-### Inventory & Consumption
-Full stock movement history (entries, exits, adjustments, allocations, returns) with estimated vs actual consumption comparison for reliable decision-making.
-
-### Dashboard & Reporting
-Real-time KPIs across customers, contracts, equipment, visits, batteries and consumables, with exportable reports.
+1. Executive Summary
+2. Framing & Meeting Objective
+3. The Operational Challenge
+4. Proposed Vision
+5. Operational Model — Technical Visit Cycle
+6. Proposed Functional Modules
+7. Asset Management
+8. Consumables — Estimation, Real Consumption & Inventory
+9. Governance — User Profiles & Responsibilities
+10. Management Information — Key Indicators
+11. Reference Architecture
+12. Phased Implementation
+13. Risks & Controls
+14. Decisions to Be Taken
+15. Proposed Next Steps
 
 ---
 
 ## Branding
 
-This document uses NemChem's corporate identity:
+This project uses NemChem's corporate identity:
 
 - **Primary colour:** Navy blue (`#1B2A6B`) — matching the NemChem wordmark
 - **Secondary colour:** Royal blue (`#2A3BB0`) — matching the logo swoosh accent
@@ -100,11 +229,24 @@ This document uses NemChem's corporate identity:
 
 ---
 
+## Demo Data
+
+The seed script (`prisma/seed.ts`) populates the database with realistic demo data:
+
+- 5 system users (1 admin, 1 manager, 3 technicians)
+- 10 customers (hotels, restaurants, hospitals, offices, shopping centres)
+- 11 contracts (Rental & FOL)
+- 42 equipment items across 6 categories
+- 59 technical visits
+- 20 inspections
+- 12 consumable products
+- Battery replacements, stock movements, and consumption records
+
+---
+
 ## Decision Requested
 
 > Validate the proposed functional direction and authorise the discovery and detailed-specification stage.
-
-No costs, timelines or commitments are assumed in this document.
 
 ---
 
