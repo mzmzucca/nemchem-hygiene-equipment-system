@@ -359,3 +359,26 @@ model SystemSetting {
   value String
   updatedAt DateTime @updatedAt
 }
+
+// ============================================================
+// AUDIT LOG — append-only, never updated or deleted
+// Records every correction, status change, and sensitive
+// operation for compliance traceability.
+// ============================================================
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?  // who performed the action
+  userRole   String?  // role at time of action
+  action     String   // CREATE | UPDATE | DELETE | CORRECTION | STATUS_CHANGE | LOGIN | EXPORT
+  entityType String   // Inspection | Visit | Contract | Equipment | StockMovement | etc.
+  entityId   String?
+  before     String?  // JSON snapshot of state before (for updates/corrections)
+  after      String?  // JSON snapshot of state after
+  reason     String?  // justification (required for corrections)
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}

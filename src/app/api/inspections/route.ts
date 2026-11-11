@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
 import { ok, err } from "@/lib/api"
+import { requireAuthOrDemo as requireAuth, audit } from "@/lib/auth-guard"
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -30,67 +31,87 @@ export async function POST(req: Request) {
   const body = await req.json()
   if (!body.visitId || !body.equipmentId) return err("Visit and equipment are required")
 
-  const inspection = await db.inspection.create({
-    data: {
-      visitId: body.visitId,
-      equipmentId: body.equipmentId,
-      technicianId: body.technicianId || null,
-      equipmentPresent: body.equipmentPresent ?? true,
-      correctlyInstalled: body.correctlyInstalled ?? true,
-      correctlyPositioned: body.correctlyPositioned ?? true,
-      workingProperly: body.workingProperly ?? true,
-      equipmentClean: body.equipmentClean ?? true,
-      batteryAvailable: body.batteryAvailable ?? "N/A",
-      batteryLevel: body.batteryLevel ?? "UNKNOWN",
-      batteryReplacementRequired: body.batteryReplacementRequired ?? false,
-      consumablesAvailable: body.consumablesAvailable ?? true,
-      maintenanceRequired: body.maintenanceRequired ?? false,
-      equipmentDamaged: body.equipmentDamaged ?? false,
-      result: body.result || "PASSED",
-      comments: body.comments,
-    },
-    include: { equipment: true, visit: true, photos: true },
-  })
+  const user = await requireAuth()
 
-  // Update equipment status based on inspection
-  let newOpStatus = "OPERATIONAL"
-  if (body.equipmentDamaged) newOpStatus = body.result === "REPLACEMENT_REQUIRED" ? "NEEDS_REPLACEMENT" : "DAMAGED"
-  else if (body.maintenanceRequired) newOpStatus = "UNDER_MAINTENANCE"
+  // The entire inspection submission runs in a single database transaction.
+  // If any step fails, the whole operation rolls back — no partial data.
+  const inspection = await db.$transaction(async (tx) => {
+    // 1. Create the inspection record
+    const insp = await tx.inspection.create({
+      data: {
+        visitId: body.visitId,
+        equipmentId: body.equipmentId,
+        technicianId: body.technicianId || user.id,
+        equipmentPresent: body.equipmentPresent ?? true,
+        correctlyInstalled: body.correctlyInstalled ?? true,
+        correctlyPositioned: body.correctlyPositioned ?? true,
+        workingProperly: body.workingProperly ?? true,
+        equipmentClean: body.equipmentClean ?? true,
+        batteryAvailable: body.batteryAvailable ?? "N/A",
+        batteryLevel: body.batteryLevel ?? "UNKNOWN",
+        batteryReplacementRequired: body.batteryReplacementRequired ?? false,
+        consumablesAvailable: body.consumablesAvailable ?? true,
+        maintenanceRequired: body.maintenanceRequired ?? false,
+        equipmentDamaged: body.equipmentDamaged ?? false,
+        result: body.result || "PASSED",
+        comments: body.comments,
+      },
+      include: { equipment: true, visit: true, photos: true },
+    })
 
-  await db.equipment.update({
-    where: { id: body.equipmentId },
-    data: {
-      operationalStatus: newOpStatus,
-      currentBatteryLevel: body.batteryLevel ?? undefined,
-      installationStatus: body.correctlyInstalled ? "CORRECTLY_INSTALLED" : "INCORRECTLY_INSTALLED",
-    },
-  })
-  await db.equipmentHistory.create({
-    data: {
-      equipmentId: body.equipmentId,
-      eventType: "INSPECTION",
-      description: `Inspection result: ${body.result}. ${body.comments ?? ""}`,
-    },
-  })
+    // 2. Update equipment status based on inspection findings
+    let newOpStatus = "OPERATIONAL"
+    if (body.equipmentDamaged)
+      newOpStatus = body.result === "REPLACEMENT_REQUIRED" ? "NEEDS_REPLACEMENT" : "DAMAGED"
+    else if (body.maintenanceRequired) newOpStatus = "UNDER_MAINTENANCE"
 
-  // Add photos
-  if (body.photos && Array.isArray(body.photos)) {
-    for (const p of body.photos) {
-      await db.inspectionPhoto.create({
-        data: {
-          inspectionId: inspection.id,
-          imageUrl: p.imageUrl,
-          type: p.type || "GENERAL",
-          caption: p.caption,
-        },
-      })
+    await tx.equipment.update({
+      where: { id: body.equipmentId },
+      data: {
+        operationalStatus: newOpStatus,
+        currentBatteryLevel: body.batteryLevel ?? undefined,
+        installationStatus: body.correctlyInstalled
+          ? "CORRECTLY_INSTALLED"
+          : "INCORRECTLY_INSTALLED",
+      },
+    })
+
+    // 3. Record in equipment history
+    await tx.equipmentHistory.create({
+      data: {
+        equipmentId: body.equipmentId,
+        eventType: "INSPECTION",
+        description: `Inspection result: ${body.result}. ${body.comments ?? ""}`,
+        performedBy: user.name,
+      },
+    })
+
+    // 4. Add photos (within the same transaction)
+    if (body.photos && Array.isArray(body.photos)) {
+      for (const p of body.photos) {
+        await tx.inspectionPhoto.create({
+          data: {
+            inspectionId: insp.id,
+            imageUrl: p.imageUrl,
+            type: p.type || "GENERAL",
+            caption: p.caption,
+          },
+        })
+      }
     }
-  }
 
-  // If battery replacement required, mark for it
-  if (body.batteryReplacementRequired) {
-    // just flag - actual replacement via battery endpoint
-  }
+    return insp
+  })
+
+  // Audit log (outside transaction — must not break the main operation)
+  await audit({
+    userId: user.id,
+    userRole: user.role,
+    action: "CREATE",
+    entityType: "Inspection",
+    entityId: inspection.id,
+    after: { result: body.result, equipmentId: body.equipmentId, visitId: body.visitId },
+  })
 
   return ok(inspection, 201)
 }

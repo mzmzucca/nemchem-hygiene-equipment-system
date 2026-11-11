@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 import { useNav } from "@/lib/nav-store"
 import type { ViewKey } from "@/lib/types"
 import { Button } from "@/components/ui/button"
+import { LoginButton } from "@/components/login-button"
 
 const NAV_ITEMS: { key: ViewKey; label: string; icon: typeof LayoutDashboard; group: string }[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, group: "Overview" },
@@ -113,16 +114,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="border-t p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                  SA
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-medium truncate">System Admin</p>
-                  <p className="text-[10px] text-muted-foreground truncate">admin@hygiene.co</p>
-                </div>
-              </div>
+            <div className="flex items-center justify-between gap-2">
+              <LoginButton />
               <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Toggle theme">
                 {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>

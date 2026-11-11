@@ -98,11 +98,12 @@ The system provides complete visibility into:
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript 5 |
 | Styling | Tailwind CSS 4 + shadcn/ui (New York) |
-| Database | Prisma ORM (SQLite) |
+| Database | Prisma ORM (SQLite — migrate to PostgreSQL for production) |
 | State | Zustand (client) + TanStack Query (server) |
 | Charts | Recharts |
 | Icons | Lucide React |
-| Auth | NextAuth.js v4 (available) |
+| Auth | NextAuth.js v4 (credentials provider, JWT sessions, role-based access) |
+| Image Processing | Sharp (photo compression) |
 
 ---
 
@@ -176,17 +177,61 @@ The system is built as a single-page application with sidebar navigation across 
 
 ## Database Schema
 
-The system uses 16 interconnected Prisma models:
+The system uses 17 interconnected Prisma models:
 
-- **User** — System users (Admin, Manager, Technician roles)
+- **User** — System users (Admin, Manager, Technician roles) with hashed passwords
 - **Customer** / **CustomerLocation** — Customer profiles and site locations
 - **EquipmentCategory** / **Equipment** / **EquipmentHistory** — Asset management with full lifecycle
 - **Contract** — Rental and FOL contracts
 - **Visit** — Technical visit scheduling
-- **Inspection** / **InspectionPhoto** — Field inspection records
+- **Inspection** / **InspectionPhoto** — Field inspection records (immutable after submission; corrections via audit)
 - **BatteryReplacement** — Battery replacement history
 - **ConsumableCategory** / **Product** / **StockMovement** / **ConsumptionRecord** / **EquipmentConsumptionRate** / **TechnicianStock** — Inventory management
 - **SystemSetting** — Configurable system parameters
+- **AuditLog** — Append-only event log (corrections, status changes, sensitive operations)
+
+---
+
+## Authentication & Authorization
+
+The system uses NextAuth.js v4 with a credentials provider and JWT sessions.
+
+### Roles
+
+| Role | Access |
+|------|--------|
+| **ADMIN** | Full access — configure users, settings, all modules |
+| **MANAGER** | Operations — customers, contracts, schedule, validation, audit logs |
+| **TECHNICIAN** | Field ops — assigned visits, inspections, stock allocation |
+
+### Demo Accounts
+
+| Email | Password | Role |
+|-------|----------|------|
+| `admin@hygiene.co` | `admin123` | Admin |
+| `manager@hygiene.co` | `manager123` | Manager |
+| `joao@hygiene.co` | `tech123` | Technician |
+
+Passwords are hashed using Node's `scrypt` (see `src/lib/password.ts`).
+
+### API Guards
+
+Write operations are protected by role-based guards in `src/lib/auth-guard.ts`:
+- `requireAuth()` — requires a valid session (production)
+- `requireAuthOrDemo()` — falls back to a demo admin user (prototype mode)
+- `requireRole(...roles)` — requires specific roles
+- `requireTechnicianOrManager(resourceTechId)` — ownership check for technicians
+
+### Audit Log
+
+Every correction, status change, and sensitive operation is recorded in the append-only `AuditLog` table with before/after snapshots. The audit trail is visible to MANAGER and ADMIN roles at `/api/audit`.
+
+### Key Business Rules Enforced
+
+- **Inspection submissions run in a database transaction** — if any step fails, the whole operation rolls back
+- **Stock cannot go negative** via routine EXIT/ALLOCATION — rejected with a clear error; only explicit ADJUSTMENT can reconcile
+- **Submitted inspections cannot be edited directly** — corrections require MANAGER/ADMIN role and a mandatory justification reason, logged to AuditLog
+- **Cancelled visits never update the last completed visit** — only `status === "COMPLETED"` counts
 
 ---
 

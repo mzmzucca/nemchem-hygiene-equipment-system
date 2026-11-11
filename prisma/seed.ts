@@ -1,14 +1,12 @@
 import { db } from "../src/lib/db"
-
-const bcrypt = {
-  hash: (s: string) => s, // plain for demo
-}
+import { hashPassword } from "../src/lib/password"
 
 async function main() {
   console.log("🌱 Seeding database...")
 
   // Clean
   await db.systemSetting.deleteMany()
+  await db.auditLog.deleteMany()
   await db.equipmentConsumptionRate.deleteMany()
   await db.technicianStock.deleteMany()
   await db.consumptionRecord.deleteMany()
@@ -27,12 +25,14 @@ async function main() {
   await db.equipmentCategory.deleteMany()
   await db.user.deleteMany()
 
+  const pw = (s: string) => hashPassword(s)
+
   // ===== USERS =====
   const admin = await db.user.create({
     data: {
       email: "admin@hygiene.co",
       name: "System Administrator",
-      password: "admin123",
+      password: pw("admin123"),
       role: "ADMIN",
       phone: "+27 11 000 0001",
       active: true,
@@ -42,7 +42,7 @@ async function main() {
     data: {
       email: "manager@hygiene.co",
       name: "Operations Manager",
-      password: "manager123",
+      password: pw("manager123"),
       role: "MANAGER",
       phone: "+27 11 000 0002",
       active: true,
@@ -52,7 +52,7 @@ async function main() {
     data: {
       email: "joao@hygiene.co",
       name: "João Macamo",
-      password: "tech123",
+      password: pw("tech123"),
       role: "TECHNICIAN",
       phone: "+27 84 111 2222",
       active: true,
@@ -62,7 +62,7 @@ async function main() {
     data: {
       email: "carlos@hygiene.co",
       name: "Carlos Mondlane",
-      password: "tech123",
+      password: pw("tech123"),
       role: "TECHNICIAN",
       phone: "+27 84 333 4444",
       active: true,
@@ -72,7 +72,7 @@ async function main() {
     data: {
       email: "ana@hygiene.co",
       name: "Ana Cossa",
-      password: "tech123",
+      password: pw("tech123"),
       role: "TECHNICIAN",
       phone: "+27 84 555 6666",
       active: true,
