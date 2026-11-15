@@ -2,6 +2,7 @@
 
 export type ViewKey =
   | "dashboard"
+  | "alerts"
   | "customers"
   | "contracts"
   | "equipment"

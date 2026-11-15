@@ -3,6 +3,7 @@
 import { AppShell } from "@/components/app-shell"
 import { useNav } from "@/lib/nav-store"
 import { DashboardModule } from "@/components/modules/dashboard"
+import { AlertsModule } from "@/components/modules/alerts"
 import { CustomersModule } from "@/components/modules/customers"
 import { ContractsModule } from "@/components/modules/contracts"
 import { EquipmentModule } from "@/components/modules/equipment"
@@ -20,6 +21,7 @@ export default function Home() {
       <div className="flex-1 flex flex-col">
         <div className="flex-1 p-4 lg:p-6 max-w-[1600px] w-full mx-auto">
           {view === "dashboard" && <DashboardModule />}
+          {view === "alerts" && <AlertsModule />}
           {view === "customers" && <CustomersModule />}
           {view === "contracts" && <ContractsModule />}
           {view === "equipment" && <EquipmentModule />}

@@ -1,6 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from "recharts"
 import {
   FileText, FileCheck2, FileX2, FileClock, Plus, Search, Pencil, Trash2,
   ArrowLeft, Boxes, CalendarDays, CalendarClock, ClipboardCheck,
@@ -43,6 +47,7 @@ import {
 } from "@/lib/labels"
 import { useNav } from "@/lib/nav-store"
 import { useApi, useCreate, useUpdate, useDelete } from "@/hooks/use-api"
+import { ExportButton } from "@/components/export-button"
 import { cn } from "@/lib/utils"
 
 // Detail endpoint returns additional relations not on the base Contract type
@@ -153,6 +158,7 @@ function ContractsListView() {
               <RefreshCw className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
               Refresh
             </Button>
+            <ExportButton type="visits" label="Export Visits" />
             <Button
               size="sm"
               onClick={() => { setEditTarget(null); setDialogOpen(true) }}
@@ -834,6 +840,7 @@ function ContractDetailView({ contractId, onBack }: { contractId: string; onBack
             <TabsTrigger value="visits"><CalendarDays className="h-4 w-4 mr-1.5" />Visits</TabsTrigger>
             <TabsTrigger value="batteries"><BatteryCharging className="h-4 w-4 mr-1.5" />Battery History</TabsTrigger>
             <TabsTrigger value="consumption"><Package className="h-4 w-4 mr-1.5" />Consumption</TabsTrigger>
+            <TabsTrigger value="profitability"><Wallet className="h-4 w-4 mr-1.5" />Profitability</TabsTrigger>
             <TabsTrigger value="history"><History className="h-4 w-4 mr-1.5" />History & Notes</TabsTrigger>
           </TabsList>
         </div>
@@ -862,6 +869,10 @@ function ContractDetailView({ contractId, onBack }: { contractId: string; onBack
 
         <TabsContent value="consumption" className="mt-4">
           <ConsumptionTab records={c.consumption ?? []} />
+        </TabsContent>
+
+        <TabsContent value="profitability" className="mt-4">
+          <ProfitabilityTab contractId={c.id} />
         </TabsContent>
 
         <TabsContent value="history" className="mt-4">
@@ -1455,6 +1466,194 @@ function HistoryNotesTab({ contract }: { contract: ContractDetail }) {
               <span className="text-muted-foreground">Assigned Technician</span>
               <span className="font-medium">{contract.technician?.name ?? "Unassigned"}</span>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ============================================================
+// Tab: Profitability
+// ============================================================
+type ProfitabilityData = {
+  type: string
+  isRental: boolean
+  monthsElapsed: number
+  completedVisits: number
+  equipmentCount: number
+  revenue: { monthlyFee: number; total: number }
+  costs: {
+    consumables: number
+    consumablesUnits: number
+    technician: number
+    costPerVisit: number
+    equipment: number
+    costPerEquipmentPerMonth: number
+    total: number
+  }
+  netResult: number
+  margin: number
+  monthly: { month: string; revenue: number; consumables: number; visits: number; technicianCost: number }[]
+}
+
+function ProfitabilityTab({ contractId }: { contractId: string }) {
+  const { data: profit, isLoading, isError } = useQuery<ProfitabilityData>({
+    queryKey: ["contract-profitability", contractId],
+    queryFn: async () => {
+      const res = await fetch(`/api/contracts/${contractId}/profitability`)
+      if (!res.ok) throw new Error("Failed to load profitability data")
+      return res.json()
+    },
+  })
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}><CardContent className="p-4 h-24 animate-pulse bg-muted/40 rounded-md" /></Card>
+          ))}
+        </div>
+        <Card><CardContent className="p-6 h-72 animate-pulse bg-muted/40 rounded-md" /></Card>
+      </div>
+    )
+  }
+
+  if (isError || !profit) {
+    return (
+      <Card>
+        <CardContent className="p-0">
+          <EmptyState
+            title="Profitability data unavailable"
+            description="Could not load financial data for this contract. Please try again later."
+            icon={AlertCircle}
+          />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const netPositive = profit.netResult >= 0
+
+  return (
+    <div className="space-y-4">
+      {/* FOL callout — no direct revenue, only cost of service */}
+      {!profit.isRental && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900/50 dark:bg-amber-900/10">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div>
+            <p className="font-medium text-amber-800 dark:text-amber-300">FOL Contract — Cost of Service View</p>
+            <p className="mt-0.5 text-amber-700 dark:text-amber-200/80">
+              FOL contracts have no direct revenue — this view shows the cost of service delivery.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* KPI row */}
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+        <KpiCard
+          title="Total Revenue"
+          value={fmtMoney(profit.revenue.total)}
+          icon={Wallet}
+          accent="teal"
+          hint={`${profit.monthsElapsed} months elapsed`}
+        />
+        <KpiCard
+          title="Total Costs"
+          value={fmtMoney(profit.costs.total)}
+          icon={Package}
+          accent="rose"
+        />
+        <KpiCard
+          title="Net Result"
+          value={fmtMoney(profit.netResult)}
+          icon={TrendingUp}
+          accent={netPositive ? "emerald" : "rose"}
+          hint={netPositive ? "Profit" : "Loss"}
+        />
+        <KpiCard
+          title="Profit Margin"
+          value={`${profit.margin}%`}
+          icon={TrendingUp}
+          accent="violet"
+        />
+      </div>
+
+      {/* Monthly financial breakdown chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />Monthly Financial Breakdown
+          </CardTitle>
+          <CardDescription>
+            Revenue vs consumables vs technician cost over the last 6 months
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={profit.monthly}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{ borderRadius: 8 }}
+                formatter={(value: number, name: string) => [fmtMoney(value), name]}
+              />
+              <Legend />
+              <Bar dataKey="revenue" fill="#0d9488" radius={[4, 4, 0, 0]} name="Revenue" />
+              <Bar dataKey="consumables" fill="#f59e0b" radius={[4, 4, 0, 0]} name="Consumables" />
+              <Bar dataKey="technicianCost" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="Technician" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Cost breakdown card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Wallet className="h-4 w-4" />Cost Breakdown
+          </CardTitle>
+          <CardDescription>
+            Cost assumptions used in the profitability calculation
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Package className="h-4 w-4 text-amber-600" />Consumables
+              </div>
+              <p className="mt-1 text-xl font-bold">{fmtMoney(profit.costs.consumables)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {profit.costs.consumablesUnits} units used across all visits
+              </p>
+            </div>
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Wrench className="h-4 w-4 text-violet-600" />Technician
+              </div>
+              <p className="mt-1 text-xl font-bold">{fmtMoney(profit.costs.technician)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {profit.completedVisits} completed visit(s) @ {fmtMoney(profit.costs.costPerVisit)}/visit
+              </p>
+            </div>
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Boxes className="h-4 w-4 text-sky-600" />Equipment
+              </div>
+              <p className="mt-1 text-xl font-bold">{fmtMoney(profit.costs.equipment)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {profit.equipmentCount} machine(s) × {profit.monthsElapsed} mo @ {fmtMoney(profit.costs.costPerEquipmentPerMonth)}/unit/mo
+              </p>
+            </div>
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Total Costs</span>
+            <span className="font-bold text-lg">{fmtMoney(profit.costs.total)}</span>
           </div>
         </CardContent>
       </Card>

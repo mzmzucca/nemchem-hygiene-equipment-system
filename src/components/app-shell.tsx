@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react"
 import { useTheme } from "next-themes"
 import {
   LayoutDashboard,
+  Bell,
   Users,
   FileText,
   Boxes,
@@ -25,6 +26,7 @@ import { LoginButton } from "@/components/login-button"
 
 const NAV_ITEMS: { key: ViewKey; label: string; icon: typeof LayoutDashboard; group: string }[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, group: "Overview" },
+  { key: "alerts", label: "Alerts Center", icon: Bell, group: "Overview" },
   { key: "customers", label: "Customers", icon: Users, group: "Operations" },
   { key: "contracts", label: "Contracts", icon: FileText, group: "Operations" },
   { key: "equipment", label: "Equipment", icon: Boxes, group: "Operations" },

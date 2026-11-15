@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator"
 import {
   StatusBadge, KpiCard, SectionTitle, EmptyState, fmtDate, fmtDateTime, fmtMoney,
 } from "@/components/shared"
+import { ExportButton } from "@/components/export-button"
 import type {
   Customer, Contract, Equipment, Visit, CustomerLocation,
   ConsumptionRecord, BatteryReplacement,
@@ -137,6 +138,7 @@ function CustomersListView() {
               <RefreshCw className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
               Refresh
             </Button>
+            <ExportButton type="customers" label="Export CSV" />
             <Button
               size="sm"
               onClick={() => { setEditTarget(null); setDialogOpen(true) }}

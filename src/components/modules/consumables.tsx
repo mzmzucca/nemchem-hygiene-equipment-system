@@ -31,6 +31,7 @@ import { Separator } from "@/components/ui/separator"
 import {
   StatusBadge, KpiCard, SectionTitle, EmptyState, fmtDate, fmtDateTime, fmtMoney,
 } from "@/components/shared"
+import { ExportButton } from "@/components/export-button"
 import type {
   Product, ConsumableCategory, StockMovement, ConsumptionRecord, User, Customer,
   Equipment,
@@ -157,6 +158,19 @@ function ConsumablesListView() {
   const outOfStock = products.filter((p) => p.currentStock === 0)
   const stockValue = products.reduce((s, p) => s + (p.currentStock || 0) * (p.unitCost || 0), 0)
 
+  // Reorder suggestions — derived from already-loaded products, no extra API call.
+  const reorderSuggestions = products
+    .filter((p) => p.currentStock <= p.minimumStock)
+    .map((p) => ({
+      ...p,
+      reorderQuantity: p.maximumStock - p.currentStock,
+      daysUntilStockout: p.currentStock > 0
+        ? Math.floor((p.currentStock / Math.max(1, p.minimumStock)) * 30) // rough estimate
+        : 0,
+      priority: p.currentStock === 0 ? "critical" : "high",
+    }))
+    .sort((a, b) => a.currentStock - b.currentStock)
+
   const handleSubmit = (formData: typeof EMPTY_FORM) => {
     const base = {
       name: formData.name,
@@ -202,6 +216,7 @@ function ConsumablesListView() {
             <Button variant="outline" size="sm" onClick={() => setCategoriesOpen(true)}>
               <FolderTree className="h-4 w-4 mr-2" />Categories
             </Button>
+            <ExportButton type="products" label="Export CSV" />
             <Button size="sm" onClick={() => { setEditTarget(null); setDialogOpen(true) }}>
               <Plus className="h-4 w-4 mr-2" />Add Product
             </Button>
@@ -282,6 +297,96 @@ function ConsumablesListView() {
           </CardContent>
         </Card>
       )}
+
+      {/* Reorder Suggestions */}
+      <Card
+        className={cn(
+          reorderSuggestions.length > 0
+            ? "border-rose-200 dark:border-rose-900/50"
+            : "border-emerald-200 dark:border-emerald-900/50",
+        )}
+      >
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            {reorderSuggestions.length > 0 ? (
+              <Package className="h-4 w-4 text-rose-600" />
+            ) : (
+              <PackageCheck className="h-4 w-4 text-emerald-600" />
+            )}
+            Reorder Suggestions
+            <span className="text-xs font-normal text-muted-foreground">
+              ({reorderSuggestions.length} item{reorderSuggestions.length !== 1 ? "s" : ""} need{reorderSuggestions.length === 1 ? "s" : ""} reorder)
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {reorderSuggestions.length === 0 ? (
+            <div className="flex items-center gap-2 rounded-lg border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-950/20 p-3 text-sm text-emerald-700 dark:text-emerald-300">
+              <PackageCheck className="h-4 w-4" />
+              All stock levels are above minimum
+            </div>
+          ) : (
+            <div className="rounded-md border max-h-96 overflow-y-auto">
+              <Table>
+                <TableHeader className="sticky top-0 bg-background z-10">
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Current Stock</TableHead>
+                    <TableHead>Min Stock</TableHead>
+                    <TableHead>Suggested Reorder Qty</TableHead>
+                    <TableHead>Est. Days to Stockout</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Supplier</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reorderSuggestions.map((p) => {
+                    const stockColor =
+                      p.currentStock === 0 ? "text-rose-600"
+                        : p.currentStock <= p.minimumStock ? "text-amber-600"
+                          : "text-emerald-600"
+                    return (
+                      <TableRow
+                        key={p.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => selectProduct(p.id)}
+                      >
+                        <TableCell className="font-medium">{p.name}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground font-mono">{p.sku}</TableCell>
+                        <TableCell>
+                          <div className={cn("font-semibold", stockColor)}>
+                            {p.currentStock} {p.unitOfMeasurement}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{p.minimumStock}</TableCell>
+                        <TableCell className="text-sm font-medium">{p.reorderQuantity}</TableCell>
+                        <TableCell className="text-sm">
+                          {p.daysUntilStockout === 0 ? (
+                            <span className="text-rose-600 font-medium">Today</span>
+                          ) : (
+                            <span>~{p.daysUntilStockout} day{p.daysUntilStockout !== 1 ? "s" : ""}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {p.priority === "critical" ? (
+                            <StatusBadge status="OVERDUE" label="Critical" />
+                          ) : (
+                            <StatusBadge status="PENDING" label="High" />
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {p.supplier || "—"}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Filters */}
       <Card>

@@ -30,6 +30,8 @@ import { Badge } from "@/components/ui/badge"
 import {
   StatusBadge, KpiCard, SectionTitle, EmptyState, fmtDate, fmtDateTime,
 } from "@/components/shared"
+import { QRCodeDisplay } from "@/components/qr-code"
+import { ExportButton } from "@/components/export-button"
 import type {
   Equipment, EquipmentCategory, Customer, Contract, CustomerLocation,
   EquipmentHistory, Inspection, BatteryReplacement, ConsumptionRecord,
@@ -191,6 +193,7 @@ function EquipmentListView() {
               <Layers className="h-4 w-4 mr-2" />
               Categories
             </Button>
+            <ExportButton type="equipment" label="Export CSV" />
             <Button size="sm" onClick={() => { setEditTarget(null); setDialogOpen(true) }}>
               <Plus className="h-4 w-4 mr-2" />
               Add Equipment
@@ -1185,6 +1188,25 @@ function OverviewTab({ equipment }: { equipment: EquipmentDetail }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
+      {/* QR Code Label */}
+      <Card className="lg:col-span-3 overflow-hidden">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <QrCode className="h-4 w-4" />QR Code Label
+          </CardTitle>
+          <CardDescription>
+            Scan with a mobile device to open this equipment record instantly
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <QRCodeDisplay
+            value={equipment.serialNumber}
+            label={equipment.serialNumber}
+            size={160}
+          />
+        </CardContent>
+      </Card>
+
       {/* Status / battery summary */}
       <Card className="lg:col-span-1">
         <CardHeader>
