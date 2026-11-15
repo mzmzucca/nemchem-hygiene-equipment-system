@@ -23,6 +23,8 @@ import { useNav } from "@/lib/nav-store"
 import type { ViewKey } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { LoginButton } from "@/components/login-button"
+import { RolesPermissionsButton } from "@/components/roles-permissions"
+import { usePermissions } from "@/hooks/use-permissions"
 
 const NAV_ITEMS: { key: ViewKey; label: string; icon: typeof LayoutDashboard; group: string }[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, group: "Overview" },
@@ -40,8 +42,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { view, setView } = useNav()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { theme, setTheme } = useTheme()
+  const { allowedNav } = usePermissions()
 
-  const groups = Array.from(new Set(NAV_ITEMS.map((n) => n.group)))
+  // Filter nav items to only those the current role can access
+  const visibleItems = NAV_ITEMS.filter((n) => allowedNav.includes(n.key))
+  const groups = Array.from(new Set(visibleItems.map((n) => n.group)))
 
   const handleNav = (k: ViewKey) => {
     setView(k)
@@ -91,7 +96,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div key={g}>
                 <p className="px-2 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{g}</p>
                 <div className="space-y-1">
-                  {NAV_ITEMS.filter((n) => n.group === g).map((item) => {
+                  {visibleItems.filter((n) => n.group === g).map((item) => {
                     const Icon = item.icon
                     const active = view === item.key
                     return (
@@ -115,7 +120,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
 
-          <div className="border-t p-3">
+          <div className="border-t p-3 space-y-2">
+            <RolesPermissionsButton />
             <div className="flex items-center justify-between gap-2">
               <LoginButton />
               <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Toggle theme">

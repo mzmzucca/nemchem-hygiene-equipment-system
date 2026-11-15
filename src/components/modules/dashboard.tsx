@@ -8,6 +8,8 @@ import {
   BatteryFull, BatteryLow, BatteryWarning,
   Package, TrendingUp, PackageX, AlertCircle, RefreshCw,
 } from "lucide-react"
+import { usePermissions } from "@/hooks/use-permissions"
+import { TechnicianDashboard } from "@/components/modules/tech-dashboard"
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, LineChart, Line, Area, AreaChart, Legend,
@@ -30,6 +32,17 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 export function DashboardModule() {
+  const { role } = usePermissions()
+
+  // Technicians see a focused personal dashboard, not the company-wide one
+  if (role === "TECHNICIAN") {
+    return <TechnicianDashboard />
+  }
+
+  return <AdminDashboard />
+}
+
+function AdminDashboard() {
   const { data, isLoading, refetch, isFetching } = useQuery<DashboardData>({
     queryKey: ["dashboard"],
     queryFn: async () => {

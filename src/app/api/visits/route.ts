@@ -1,5 +1,7 @@
 import { db } from "@/lib/db"
 import { ok, err } from "@/lib/api"
+import { getCurrentUser, requireAuthOrDemo, audit } from "@/lib/auth-guard"
+import { can } from "@/lib/permissions"
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -11,6 +13,11 @@ export async function GET(req: Request) {
   const to = searchParams.get("to")
   const visitType = searchParams.get("visitType")
 
+  // ROLE SCOPING: Technicians can only see visits assigned to them.
+  // Managers/Admins can see all visits.
+  const user = await getCurrentUser()
+  const scopedTechnicianId = user?.role === "TECHNICIAN" ? user.id : technicianId
+
   const dateFilter: { gte?: Date; lte?: Date } = {}
   if (from) dateFilter.gte = new Date(from)
   if (to) dateFilter.lte = new Date(to)
@@ -20,7 +27,7 @@ export async function GET(req: Request) {
       AND: [
         customerId ? { customerId } : {},
         contractId ? { contractId } : {},
-        technicianId ? { technicianId } : {},
+        scopedTechnicianId ? { technicianId: scopedTechnicianId } : {},
         status ? { status } : {},
         visitType ? { visitType } : {},
         (from || to) ? { scheduledDate: dateFilter } : {},
@@ -38,6 +45,12 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  // Only managers and admins can schedule visits
+  const user = await requireAuthOrDemo()
+  if (!can(user.role, "visits:create")) {
+    return err("Insufficient permissions: scheduling visits requires MANAGER or ADMIN role", 403)
+  }
+
   const body = await req.json()
   if (!body.customerId || !body.scheduledDate) return err("Customer and scheduled date are required")
 
@@ -54,6 +67,16 @@ export async function POST(req: Request) {
     },
     include: { customer: true, contract: true, technician: true },
   })
+
+  await audit({
+    userId: user.id,
+    userRole: user.role,
+    action: "CREATE",
+    entityType: "Visit",
+    entityId: visit.id,
+    after: { customerId: body.customerId, date: body.scheduledDate, technicianId: body.technicianId },
+  })
+
   return ok(visit, 201)
 }
 

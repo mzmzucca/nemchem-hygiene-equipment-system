@@ -1,12 +1,24 @@
 import { db } from "@/lib/db"
 import { toCSV, csvResponse } from "@/lib/csv"
+import { requireAuthOrDemo, audit } from "@/lib/auth-guard"
+import { can } from "@/lib/permissions"
+import { NextResponse } from "next/server"
 
 /**
  * GET /api/export?type=customers|equipment|visits|consumption|products
  *
  * Exports the requested data set as a downloadable CSV file.
+ * Requires export:any capability (ADMIN or MANAGER only).
  */
 export async function GET(req: Request) {
+  const user = await requireAuthOrDemo()
+  if (!can(user.role, "export:any")) {
+    return NextResponse.json(
+      { error: "Insufficient permissions: exporting data requires MANAGER or ADMIN role" },
+      { status: 403 }
+    )
+  }
+
   const { searchParams } = new URL(req.url)
   const type = searchParams.get("type") || "customers"
 

@@ -1,5 +1,7 @@
 import { db } from "@/lib/db"
 import { ok, err } from "@/lib/api"
+import { requireAuthOrDemo, audit } from "@/lib/auth-guard"
+import { can } from "@/lib/permissions"
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -25,6 +27,11 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const user = await requireAuthOrDemo()
+  if (!can(user.role, "customers:create")) {
+    return err("Insufficient permissions: creating customers requires MANAGER or ADMIN role", 403)
+  }
+
   const body = await req.json()
   if (!body.name || !body.code) return err("Name and code are required")
   const existing = await db.customer.findUnique({ where: { code: body.code } })
@@ -43,5 +50,15 @@ export async function POST(req: Request) {
       status: body.status || "ACTIVE",
     },
   })
+
+  await audit({
+    userId: user.id,
+    userRole: user.role,
+    action: "CREATE",
+    entityType: "Customer",
+    entityId: customer.id,
+    after: { name: body.name, code: body.code },
+  })
+
   return ok(customer, 201)
 }
