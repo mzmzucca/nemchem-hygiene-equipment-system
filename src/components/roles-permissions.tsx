@@ -13,7 +13,7 @@ import {
 import { usePermissions } from "@/hooks/use-permissions"
 import { cn } from "@/lib/utils"
 
-const ROLES: Role[] = ["ADMIN", "MANAGER", "TECHNICIAN"]
+const ROLES: Role[] = ["ADMIN", "CEO", "SUPERVISOR", "INSPECTOR"]
 
 export function RolesPermissionsButton() {
   const [open, setOpen] = useState(false)
@@ -54,7 +54,7 @@ export function RolesPermissionsButton() {
                 return (
                   <div
                     key={r}
-                    className={cn("rounded-lg border p-4", r === "TECHNICIAN" ? "border-amber-200 bg-amber-50/50 dark:bg-amber-950/10" : r === "MANAGER" ? "border-teal-200 bg-teal-50/50 dark:bg-teal-950/10" : "border-violet-200 bg-violet-50/50 dark:bg-violet-950/10")}
+                    className={cn("rounded-lg border p-4", r === "INSPECTOR" ? "border-sky-200 bg-sky-50/50 dark:bg-sky-950/10" : r === "SUPERVISOR" ? "border-amber-200 bg-amber-50/50 dark:bg-amber-950/10" : r === "CEO" ? "border-teal-200 bg-teal-50/50 dark:bg-teal-950/10" : "border-violet-200 bg-violet-50/50 dark:bg-violet-950/10")}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className={cn("text-xs font-semibold px-2 py-0.5 rounded", info.color)}>
@@ -121,9 +121,9 @@ export function RolesPermissionsButton() {
             <div className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
               <Eye className="h-3.5 w-3.5 mt-0.5 shrink-0" />
               <p>
-                <strong>Technician data scoping:</strong> Technicians only see visits, inspections and stock
+                <strong>Inspector data scoping:</strong> Inspectors only see inspections and CAPAs
                 assigned to them. The API filters by the authenticated user's ID — they cannot access
-                other technicians' data even by guessing URLs.
+                other inspectors' data even by guessing URLs.
               </p>
             </div>
             <div className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">

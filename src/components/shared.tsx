@@ -19,11 +19,7 @@ export function StatusBadge({ status, label }: { status: string; label?: string 
 }
 
 export function KpiCard({
-  title,
-  value,
-  icon: Icon,
-  hint,
-  accent = "default",
+  title, value, icon: Icon, hint, accent = "default",
 }: {
   title: string
   value: string | number
@@ -91,8 +87,4 @@ export function fmtDateTime(d?: string | Date | null) {
   if (!d) return "—"
   const date = typeof d === "string" ? new Date(d) : d
   return date.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
-}
-
-export function fmtMoney(n: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "ZAR", maximumFractionDigits: 0 }).format(n)
 }

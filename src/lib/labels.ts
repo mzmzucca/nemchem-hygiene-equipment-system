@@ -1,168 +1,125 @@
-// Label & color mappings for the system
+// Label & color mappings for the Hygiene Management System
 
-export const CUSTOMER_CATEGORIES: Record<string, string> = {
-  HOTEL: "Hotel",
-  RESTAURANT: "Restaurant",
-  HOSPITAL: "Hospital",
-  OFFICE: "Office",
-  SHOPPING_CENTRE: "Shopping Centre",
-  OTHER: "Other",
-}
-
-export const CONTRACT_TYPES: Record<string, string> = {
-  RENTAL: "Rental",
-  FOL: "FOL (Free on Loan)",
-}
-
-export const CONTRACT_STATUS: Record<string, string> = {
-  ACTIVE: "Active",
-  EXPIRED: "Expired",
-  TERMINATED: "Terminated",
-  SUSPENDED: "Suspended",
+export const INSPECTION_STATUS: Record<string, string> = {
   PENDING: "Pending",
-}
-
-export const VISIT_FREQUENCY: Record<string, string> = {
-  DAILY: "Daily",
-  WEEKLY: "Weekly",
-  BIWEEKLY: "Biweekly",
-  MONTHLY: "Monthly",
-  CUSTOM: "Custom",
-}
-
-export const VISIT_STATUS: Record<string, string> = {
-  SCHEDULED: "Scheduled",
+  ASSIGNED: "Assigned",
+  ACCEPTED: "Accepted",
+  DECLINED: "Declined",
   IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-  PENDING: "Pending",
+  DRAFT: "Draft",
+  SUBMITTED: "Submitted",
+  UNDER_REVIEW: "Under Review",
+  RETURNED: "Returned for Corrections",
+  APPROVED: "Approved",
+  CLOSED: "Closed",
+}
+
+export const RESPONSE_LABELS: Record<string, string> = {
+  COMPLIANT: "Compliant",
+  PARTIALLY_COMPLIANT: "Partially Compliant",
+  NON_COMPLIANT: "Non-Compliant",
+  NOT_APPLICABLE: "Not Applicable",
+}
+
+export const SEVERITY_LABELS: Record<string, string> = {
+  CRITICAL: "Critical",
+  HIGH: "High",
+  MEDIUM: "Medium",
+  LOW: "Low",
+}
+
+export const CAPA_STATUS: Record<string, string> = {
+  OPEN: "Open",
+  ASSIGNED: "Assigned",
+  IN_PROGRESS: "In Progress",
+  SUBMITTED_FOR_VERIFICATION: "Submitted for Verification",
+  CLOSED: "Closed",
   CANCELLED: "Cancelled",
   OVERDUE: "Overdue",
 }
 
-export const VISIT_TYPE: Record<string, string> = {
-  INSPECTION: "Inspection",
-  MAINTENANCE: "Maintenance",
-  INSTALLATION: "Installation",
-  REPLACEMENT: "Replacement",
+export const DEFECT_STATUS: Record<string, string> = {
+  OPEN: "Open",
+  IN_PROGRESS: "In Progress",
+  RESOLVED: "Resolved",
+  ESCALATED: "Escalated",
+}
+
+export const ALERT_TYPES: Record<string, string> = {
+  CRITICAL_VIOLATION: "Critical Violation",
+  LOW_SCORE: "Low Score",
+  REPEATED_NON_COMPLIANCE: "Repeated Non-Compliance",
+  OVERDUE_CAPA: "Overdue CAPA",
+  MISSED_INSPECTION: "Missed Inspection",
+  DECLINING_COMPLIANCE: "Declining Compliance",
+}
+
+export const FACILITY_TYPES: Record<string, string> = {
+  HOTEL: "Hotel",
+  RESTAURANT: "Restaurant",
+  HOSPITAL: "Hospital",
+  OFFICE: "Office",
+  FACTORY: "Factory",
+  KITCHEN: "Kitchen",
   OTHER: "Other",
 }
 
-export const OPERATIONAL_STATUS: Record<string, string> = {
-  OPERATIONAL: "Operational",
-  NOT_OPERATIONAL: "Not Operational",
-  DAMAGED: "Damaged",
-  UNDER_MAINTENANCE: "Under Maintenance",
-  MISSING: "Missing",
-  NEEDS_REPLACEMENT: "Needs Replacement",
-  DECOMMISSIONED: "Decommissioned",
-}
-
-export const INSTALLATION_STATUS: Record<string, string> = {
-  CORRECTLY_INSTALLED: "Correctly Installed",
-  INCORRECTLY_INSTALLED: "Incorrectly Installed",
-  NEEDS_REPOSITIONING: "Needs Repositioning",
-  INSTALLATION_PENDING: "Installation Pending",
-}
-
-export const BATTERY_LEVEL: Record<string, string> = {
-  FULL: "100%",
-  SEVENTY_FIVE: "75%",
-  FIFTY: "50%",
-  TWENTY_FIVE: "25%",
-  EMPTY: "0%",
-  UNKNOWN: "Unknown",
-  NA: "N/A",
-}
-
-export const INSPECTION_RESULT: Record<string, string> = {
-  PASSED: "Passed",
-  PASSED_WITH_OBSERVATIONS: "Passed with Observations",
-  FAILED: "Failed",
-  MAINTENANCE_REQUIRED: "Maintenance Required",
-  REPLACEMENT_REQUIRED: "Replacement Required",
-}
-
-export const MOVEMENT_TYPE: Record<string, string> = {
-  ENTRY: "Stock Entry",
-  EXIT: "Stock Exit",
-  ADJUSTMENT: "Adjustment",
-  TRANSFER: "Transfer",
-  ALLOCATION: "Technician Allocation",
-  RETURN: "Return",
-}
-
-export const EVENT_TYPE: Record<string, string> = {
-  REGISTRATION: "Registration",
-  INSTALLATION: "Installation",
-  CUSTOMER_ASSIGNMENT: "Customer Assignment",
-  CONTRACT_ASSIGNMENT: "Contract Assignment",
-  INSPECTION: "Inspection",
-  MAINTENANCE: "Maintenance",
-  BATTERY_REPLACEMENT: "Battery Replacement",
-  CONSUMABLE_USAGE: "Consumable Usage",
-  RELOCATION: "Relocation",
-  REPLACEMENT: "Replacement",
-  DECOMMISSIONING: "Decommissioning",
-}
-
-// Status -> tailwind badge classes (avoiding indigo/blue per guidelines)
 export function statusColor(status: string): string {
   const map: Record<string, string> = {
+    COMPLIANT: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+    APPROVED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+    CLOSED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+    RESOLVED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
     ACTIVE: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-    OPERATIONAL: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-    COMPLETED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-    SCHEDULED: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
     PENDING: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    ASSIGNED: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
+    ACCEPTED: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
     IN_PROGRESS: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+    DRAFT: "bg-zinc-100 text-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-300",
+    SUBMITTED: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+    UNDER_REVIEW: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+    RETURNED: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
+    DECLINED: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
     OVERDUE: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
-    EXPIRED: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
-    TERMINATED: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
-    SUSPENDED: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-    DAMAGED: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
-    NOT_OPERATIONAL: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
-    UNDER_MAINTENANCE: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-    NEEDS_REPLACEMENT: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
-    MISSING: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
-    DECOMMISSIONED: "bg-zinc-100 text-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-300",
-    INCORRECTLY_INSTALLED: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-    NEEDS_REPOSITIONING: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-    INSTALLATION_PENDING: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-    CORRECTLY_INSTALLED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+    ESCALATED: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
     CANCELLED: "bg-zinc-100 text-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-300",
     INACTIVE: "bg-zinc-100 text-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-300",
-    PASSED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-    PASSED_WITH_OBSERVATIONS: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-    FAILED: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
-    MAINTENANCE_REQUIRED: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
-    REPLACEMENT_REQUIRED: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
-    RENTAL: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
-    FOL: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+    OPEN: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    NON_COMPLIANT: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
+    PARTIALLY_COMPLIANT: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    NOT_APPLICABLE: "bg-zinc-100 text-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-300",
+    CRITICAL: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
+    HIGH: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+    MEDIUM: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    LOW: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
+    ADMIN: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+    CEO: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+    SUPERVISOR: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    INSPECTOR: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
   }
   return map[status] ?? "bg-zinc-100 text-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-300"
 }
 
-export function batteryLevelColor(level: string): string {
+export function severityIcon(sev: string): string {
   const map: Record<string, string> = {
-    FULL: "bg-emerald-500",
-    SEVENTY_FIVE: "bg-emerald-400",
-    FIFTY: "bg-amber-500",
-    TWENTY_FIVE: "bg-orange-500",
-    EMPTY: "bg-rose-500",
-    UNKNOWN: "bg-zinc-400",
-    NA: "bg-zinc-300",
+    CRITICAL: "text-rose-600",
+    HIGH: "text-orange-600",
+    MEDIUM: "text-amber-600",
+    LOW: "text-sky-600",
   }
-  return map[level] ?? "bg-zinc-400"
+  return map[sev] ?? "text-zinc-600"
 }
 
-export function batteryLevelPercent(level: string): number {
-  const map: Record<string, number> = {
-    FULL: 100,
-    SEVENTY_FIVE: 75,
-    FIFTY: 50,
-    TWENTY_FIVE: 25,
-    EMPTY: 0,
-    UNKNOWN: 0,
-    NA: 0,
-  }
-  return map[level] ?? 0
+export function complianceColor(percent: number): string {
+  if (percent >= 85) return "text-emerald-600"
+  if (percent >= 70) return "text-amber-600"
+  if (percent >= 60) return "text-orange-600"
+  return "text-rose-600"
+}
+
+export function complianceBg(percent: number): string {
+  if (percent >= 85) return "bg-emerald-500"
+  if (percent >= 70) return "bg-amber-500"
+  if (percent >= 60) return "bg-orange-500"
+  return "bg-rose-500"
 }

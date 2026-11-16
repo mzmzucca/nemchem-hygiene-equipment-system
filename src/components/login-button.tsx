@@ -17,9 +17,10 @@ import { LogIn, LogOut, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 
 const DEMO_ACCOUNTS = [
-  { email: "admin@hygiene.co", password: "admin123", role: "Admin", label: "Full access" },
-  { email: "manager@hygiene.co", password: "manager123", role: "Manager", label: "Operations" },
-  { email: "joao@hygiene.co", password: "tech123", role: "Technician", label: "Field ops" },
+  { email: "admin@hygiene.co", password: "admin123", role: "Admin", label: "Full system access" },
+  { email: "sergio.zucca@nemchem.co", password: "ceo123", role: "CEO", label: "Executive oversight" },
+  { email: "supervisor@hygiene.co", password: "super123", role: "Supervisor", label: "Operations mgmt" },
+  { email: "joao@hygiene.co", password: "insp123", role: "Inspector", label: "Field inspections" },
 ]
 
 export function LoginButton() {

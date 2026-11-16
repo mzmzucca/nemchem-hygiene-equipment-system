@@ -6,52 +6,47 @@ import type { ViewKey } from "@/lib/types"
 interface NavState {
   view: ViewKey
   setView: (v: ViewKey) => void
-  // detail selection
-  selectedCustomerId: string | null
-  selectedContractId: string | null
-  selectedEquipmentId: string | null
-  selectedVisitId: string | null
-  selectedProductId: string | null
-  selectedBatteryId: string | null
-  // inspection context (visit to inspect)
-  inspectVisitId: string | null
-  selectCustomer: (id: string | null) => void
-  selectContract: (id: string | null) => void
-  selectEquipment: (id: string | null) => void
-  selectVisit: (id: string | null) => void
-  selectProduct: (id: string | null) => void
-  selectBattery: (id: string | null) => void
-  setInspectVisit: (id: string | null) => void
-  // go to customer
-  goToCustomer: (id: string) => void
-  goToContract: (id: string) => void
-  goToEquipment: (id: string) => void
-  goToVisit: (id: string) => void
-  goToProduct: (id: string) => void
-  goToInspect: (visitId: string) => void
+  selectedInspectionId: string | null
+  selectedLocationId: string | null
+  selectedTemplateId: string | null
+  selectedCapaId: string | null
+  selectedUserId: string | null
+  inspectMode: string | null // "create" | "inspect" | null
+  selectInspection: (id: string | null) => void
+  selectLocation: (id: string | null) => void
+  selectTemplate: (id: string | null) => void
+  selectCapa: (id: string | null) => void
+  selectUser: (id: string | null) => void
+  setInspectMode: (m: string | null) => void
+  goToInspection: (id: string) => void
+  goToLocation: (id: string) => void
+  goToTemplate: (id: string) => void
+  goToCapa: (id: string) => void
+  goToUser: (id: string) => void
+  goToInspect: (inspectionId: string) => void
+  goToCreateInspection: () => void
 }
 
 export const useNav = create<NavState>((set) => ({
   view: "dashboard",
-  setView: (v) => set({ view: v, selectedCustomerId: null, selectedContractId: null, selectedEquipmentId: null, selectedVisitId: null, selectedProductId: null, selectedBatteryId: null, inspectVisitId: null }),
-  selectedCustomerId: null,
-  selectedContractId: null,
-  selectedEquipmentId: null,
-  selectedVisitId: null,
-  selectedProductId: null,
-  selectedBatteryId: null,
-  inspectVisitId: null,
-  selectCustomer: (id) => set({ selectedCustomerId: id }),
-  selectContract: (id) => set({ selectedContractId: id }),
-  selectEquipment: (id) => set({ selectedEquipmentId: id }),
-  selectVisit: (id) => set({ selectedVisitId: id }),
-  selectProduct: (id) => set({ selectedProductId: id }),
-  selectBattery: (id) => set({ selectedBatteryId: id }),
-  setInspectVisit: (id) => set({ inspectVisitId: id }),
-  goToCustomer: (id) => set({ view: "customers", selectedCustomerId: id, selectedContractId: null }),
-  goToContract: (id) => set({ view: "contracts", selectedContractId: id }),
-  goToEquipment: (id) => set({ view: "equipment", selectedEquipmentId: id }),
-  goToVisit: (id) => set({ view: "visits", selectedVisitId: id }),
-  goToProduct: (id) => set({ view: "consumables", selectedProductId: id }),
-  goToInspect: (visitId) => set({ view: "inspections", inspectVisitId: visitId }),
+  setView: (v) => set({ view: v, selectedInspectionId: null, selectedLocationId: null, selectedTemplateId: null, selectedCapaId: null, selectedUserId: null, inspectMode: null }),
+  selectedInspectionId: null,
+  selectedLocationId: null,
+  selectedTemplateId: null,
+  selectedCapaId: null,
+  selectedUserId: null,
+  inspectMode: null,
+  selectInspection: (id) => set({ selectedInspectionId: id }),
+  selectLocation: (id) => set({ selectedLocationId: id }),
+  selectTemplate: (id) => set({ selectedTemplateId: id }),
+  selectCapa: (id) => set({ selectedCapaId: id }),
+  selectUser: (id) => set({ selectedUserId: id }),
+  setInspectMode: (m) => set({ inspectMode: m }),
+  goToInspection: (id) => set({ view: "inspections", selectedInspectionId: id, inspectMode: null }),
+  goToLocation: (id) => set({ view: "locations", selectedLocationId: id }),
+  goToTemplate: (id) => set({ view: "templates", selectedTemplateId: id }),
+  goToCapa: (id) => set({ view: "capa", selectedCapaId: id }),
+  goToUser: (id) => set({ view: "users", selectedUserId: id }),
+  goToInspect: (inspectionId) => set({ view: "inspections", selectedInspectionId: inspectionId, inspectMode: "inspect" }),
+  goToCreateInspection: () => set({ view: "inspections", selectedInspectionId: null, inspectMode: "create" }),
 }))

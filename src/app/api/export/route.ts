@@ -5,201 +5,192 @@ import { can } from "@/lib/permissions"
 import { NextResponse } from "next/server"
 
 /**
- * GET /api/export?type=customers|equipment|visits|consumption|products
- *
+ * GET /api/export?type=inspections|locations|users
  * Exports the requested data set as a downloadable CSV file.
- * Requires export:any capability (ADMIN or MANAGER only).
+ * Requires reports:export capability.
  */
 export async function GET(req: Request) {
   const user = await requireAuthOrDemo()
-  if (!can(user.role, "export:any")) {
+  if (!can(user.role, "reports:export")) {
     return NextResponse.json(
-      { error: "Insufficient permissions: exporting data requires MANAGER or ADMIN role" },
+      { error: "Insufficient permissions: reports:export required" },
       { status: 403 }
     )
   }
 
   const { searchParams } = new URL(req.url)
-  const type = searchParams.get("type") || "customers"
+  const type = searchParams.get("type") || "inspections"
 
-  switch (type) {
-    case "customers": {
-      const rows = await db.customer.findMany({
-        include: { _count: { select: { contracts: true, equipment: true, visits: true } } },
-        orderBy: { name: "asc" },
-      })
-      const csv = toCSV(
-        rows.map((r) => ({
-          code: r.code,
-          name: r.name,
-          category: r.category,
-          city: r.city ?? "",
-          contactPerson: r.contactPerson ?? "",
-          phone: r.phone ?? "",
-          email: r.email ?? "",
-          status: r.status,
-          contracts: r._count.contracts,
-          equipment: r._count.equipment,
-          visits: r._count.visits,
-          registered: r.createdAt.toISOString().split("T")[0],
-        })),
-        [
-          { key: "code", label: "Code" },
-          { key: "name", label: "Name" },
-          { key: "category", label: "Category" },
-          { key: "city", label: "City" },
-          { key: "contactPerson", label: "Contact Person" },
-          { key: "phone", label: "Phone" },
-          { key: "email", label: "Email" },
-          { key: "status", label: "Status" },
-          { key: "contracts", label: "Contracts" },
-          { key: "equipment", label: "Equipment" },
-          { key: "visits", label: "Visits" },
-          { key: "registered", label: "Registered" },
-        ]
-      )
-      return csvResponse("nemchem-customers.csv", csv)
-    }
+  if (type === "inspections") {
+    const rows = await db.inspection.findMany({
+      include: {
+        location: { select: { name: true, code: true } },
+        inspector: { select: { name: true, email: true } },
+        template: { select: { name: true } },
+        createdBy: { select: { name: true } },
+      },
+      orderBy: { scheduledDate: "desc" },
+      take: 1000,
+    })
+    const csv = toCSV(
+      rows.map((r) => ({
+        id: r.id,
+        title: r.title,
+        location: r.location?.name ?? "",
+        locationCode: r.location?.code ?? "",
+        template: r.template?.name ?? "",
+        inspector: r.inspector?.name ?? "",
+        inspectorEmail: r.inspector?.email ?? "",
+        createdBy: r.createdBy?.name ?? "",
+        status: r.status,
+        scheduledDate: r.scheduledDate.toISOString(),
+        completedDate: r.completedDate?.toISOString() ?? "",
+        compliance: r.compliancePercent ?? "",
+        score: r.overallScore ?? "",
+        declineReason: r.declineReason ?? "",
+        reviewComments: r.reviewComments ?? "",
+      })),
+      [
+        { key: "id", label: "ID" },
+        { key: "title", label: "Title" },
+        { key: "location", label: "Location" },
+        { key: "locationCode", label: "Location Code" },
+        { key: "template", label: "Template" },
+        { key: "inspector", label: "Inspector" },
+        { key: "inspectorEmail", label: "Inspector Email" },
+        { key: "createdBy", label: "Created By" },
+        { key: "status", label: "Status" },
+        { key: "scheduledDate", label: "Scheduled Date" },
+        { key: "completedDate", label: "Completed Date" },
+        { key: "compliance", label: "Compliance %" },
+        { key: "score", label: "Score" },
+        { key: "declineReason", label: "Decline Reason" },
+        { key: "reviewComments", label: "Review Comments" },
+      ]
+    )
 
-    case "equipment": {
-      const rows = await db.equipment.findMany({
-        include: { category: true, customer: true, contract: true, location: true },
-        orderBy: { serialNumber: "asc" },
-      })
-      const csv = toCSV(
-        rows.map((r) => ({
-          serial: r.serialNumber,
-          name: r.name,
-          category: r.category?.name ?? "",
-          brand: r.brand ?? "",
-          model: r.model ?? "",
-          customer: r.customer?.name ?? "Unassigned",
-          contract: r.contract?.contractNumber ?? "",
-          location: r.location?.name ?? "",
-          operationalStatus: r.operationalStatus,
-          installationStatus: r.installationStatus,
-          batteryLevel: r.currentBatteryLevel,
-          batteryType: r.batteryType ?? "",
-          installed: r.installationDate?.toISOString().split("T")[0] ?? "",
-        })),
-        [
-          { key: "serial", label: "Serial Number" },
-          { key: "name", label: "Name" },
-          { key: "category", label: "Category" },
-          { key: "brand", label: "Brand" },
-          { key: "model", label: "Model" },
-          { key: "customer", label: "Customer" },
-          { key: "contract", label: "Contract" },
-          { key: "location", label: "Location" },
-          { key: "operationalStatus", label: "Operational Status" },
-          { key: "installationStatus", label: "Installation Status" },
-          { key: "batteryLevel", label: "Battery Level" },
-          { key: "batteryType", label: "Battery Type" },
-          { key: "installed", label: "Install Date" },
-        ]
-      )
-      return csvResponse("nemchem-equipment.csv", csv)
-    }
-
-    case "visits": {
-      const rows = await db.visit.findMany({
-        include: { customer: true, contract: true, technician: true, _count: { select: { inspections: true } } },
-        orderBy: { scheduledDate: "desc" },
-      })
-      const csv = toCSV(
-        rows.map((r) => ({
-          date: r.scheduledDate.toISOString().split("T")[0],
-          time: r.scheduledTime ?? "",
-          customer: r.customer?.name ?? "",
-          contract: r.contract?.contractNumber ?? "",
-          technician: r.technician?.name ?? "",
-          type: r.visitType,
-          status: r.status,
-          inspections: r._count.inspections,
-        })),
-        [
-          { key: "date", label: "Date" },
-          { key: "time", label: "Time" },
-          { key: "customer", label: "Customer" },
-          { key: "contract", label: "Contract" },
-          { key: "technician", label: "Technician" },
-          { key: "type", label: "Visit Type" },
-          { key: "status", label: "Status" },
-          { key: "inspections", label: "Inspections" },
-        ]
-      )
-      return csvResponse("nemchem-visits.csv", csv)
-    }
-
-    case "consumption": {
-      const rows = await db.consumptionRecord.findMany({
-        include: { product: true, customer: true, equipment: true, technician: true },
-        orderBy: { date: "desc" },
-        take: 1000,
-      })
-      const csv = toCSV(
-        rows.map((r) => ({
-          date: r.date.toISOString().split("T")[0],
-          product: r.product?.name ?? "",
-          customer: r.customer?.name ?? "",
-          equipment: r.equipment?.serialNumber ?? "",
-          technician: r.technician?.name ?? "",
-          quantity: r.quantity,
-          notes: r.notes ?? "",
-        })),
-        [
-          { key: "date", label: "Date" },
-          { key: "product", label: "Product" },
-          { key: "customer", label: "Customer" },
-          { key: "equipment", label: "Equipment" },
-          { key: "technician", label: "Technician" },
-          { key: "quantity", label: "Quantity" },
-          { key: "notes", label: "Notes" },
-        ]
-      )
-      return csvResponse("nemchem-consumption.csv", csv)
-    }
-
-    case "products": {
-      const rows = await db.product.findMany({
-        include: { category: true },
-        orderBy: { name: "asc" },
-      })
-      const csv = toCSV(
-        rows.map((r) => ({
-          sku: r.sku,
-          name: r.name,
-          category: r.category?.name ?? "",
-          unit: r.unitOfMeasurement,
-          currentStock: r.currentStock,
-          minimumStock: r.minimumStock,
-          maximumStock: r.maximumStock,
-          unitCost: r.unitCost,
-          stockValue: r.currentStock * r.unitCost,
-          supplier: r.supplier ?? "",
-          status: r.status,
-        })),
-        [
-          { key: "sku", label: "SKU" },
-          { key: "name", label: "Name" },
-          { key: "category", label: "Category" },
-          { key: "unit", label: "Unit" },
-          { key: "currentStock", label: "Current Stock" },
-          { key: "minimumStock", label: "Min Stock" },
-          { key: "maximumStock", label: "Max Stock" },
-          { key: "unitCost", label: "Unit Cost" },
-          { key: "stockValue", label: "Stock Value" },
-          { key: "supplier", label: "Supplier" },
-          { key: "status", label: "Status" },
-        ]
-      )
-      return csvResponse("nemchem-products.csv", csv)
-    }
-
-    default:
-      return new Response(JSON.stringify({ error: "Unknown export type" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      })
+    await audit({
+      userId: user.id,
+      userRole: user.role,
+      action: "EXPORT",
+      entityType: "Inspection",
+      after: { count: rows.length },
+    })
+    return csvResponse("inspections.csv", csv)
   }
+
+  if (type === "locations") {
+    const rows = await db.location.findMany({
+      include: {
+        supervisor: { select: { name: true, email: true } },
+        _count: { select: { inspections: true, capas: true, defects: true } },
+      },
+      orderBy: { name: "asc" },
+    })
+    const csv = toCSV(
+      rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        code: r.code,
+        type: r.facilityType,
+        address: r.address ?? "",
+        city: r.city ?? "",
+        supervisor: r.supervisor?.name ?? "",
+        supervisorEmail: r.supervisor?.email ?? "",
+        status: r.status,
+        inspections: r._count.inspections,
+        capas: r._count.capas,
+        defects: r._count.defects,
+        gpsLat: r.gpsLat ?? "",
+        gpsLng: r.gpsLng ?? "",
+      })),
+      [
+        { key: "id", label: "ID" },
+        { key: "name", label: "Name" },
+        { key: "code", label: "Code" },
+        { key: "type", label: "Facility Type" },
+        { key: "address", label: "Address" },
+        { key: "city", label: "City" },
+        { key: "supervisor", label: "Supervisor" },
+        { key: "supervisorEmail", label: "Supervisor Email" },
+        { key: "status", label: "Status" },
+        { key: "inspections", label: "Inspections" },
+        { key: "capas", label: "Open CAPAs" },
+        { key: "defects", label: "Defects" },
+        { key: "gpsLat", label: "GPS Latitude" },
+        { key: "gpsLng", label: "GPS Longitude" },
+      ]
+    )
+
+    await audit({
+      userId: user.id,
+      userRole: user.role,
+      action: "EXPORT",
+      entityType: "Location",
+      after: { count: rows.length },
+    })
+    return csvResponse("locations.csv", csv)
+  }
+
+  if (type === "users") {
+    const rows = await db.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        phone: true,
+        active: true,
+        createdAt: true,
+        _count: {
+          select: {
+            inspectionsCreated: true,
+            inspectionsAssigned: true,
+            capasAssigned: true,
+          },
+        },
+      },
+      orderBy: { name: "asc" },
+    })
+    const csv = toCSV(
+      rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        phone: r.phone ?? "",
+        active: r.active ? "Yes" : "No",
+        created: r.createdAt.toISOString().split("T")[0],
+        inspectionsCreated: r._count.inspectionsCreated,
+        inspectionsAssigned: r._count.inspectionsAssigned,
+        capasAssigned: r._count.capasAssigned,
+      })),
+      [
+        { key: "id", label: "ID" },
+        { key: "name", label: "Name" },
+        { key: "email", label: "Email" },
+        { key: "role", label: "Role" },
+        { key: "phone", label: "Phone" },
+        { key: "active", label: "Active" },
+        { key: "created", label: "Created" },
+        { key: "inspectionsCreated", label: "Inspections Created" },
+        { key: "inspectionsAssigned", label: "Inspections Assigned" },
+        { key: "capasAssigned", label: "CAPAs Assigned" },
+      ]
+    )
+
+    await audit({
+      userId: user.id,
+      userRole: user.role,
+      action: "EXPORT",
+      entityType: "User",
+      after: { count: rows.length },
+    })
+    return csvResponse("users.csv", csv)
+  }
+
+  return NextResponse.json(
+    { error: "Unknown export type. Use inspections, locations, or users." },
+    { status: 400 }
+  )
 }

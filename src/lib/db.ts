@@ -4,10 +4,22 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-export const db =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: ['query'],
-  })
+// In development, the global singleton can become stale after `prisma generate`
+// (e.g. new models added to the schema won't be present on the cached instance).
+// Always create a fresh client in dev mode to guarantee access to all models.
+const dbClient = new PrismaClient({
+  log: process.env.NODE_ENV !== 'production' ? ['query', 'warn', 'error'] : ['error'],
+})
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+export const db = dbClient
+
+if (process.env.NODE_ENV !== 'production') {
+  // Reuse across hot reloads, but always replace if stale (missing newer models)
+  const existing = globalForPrisma.prisma as unknown as { defect?: unknown } | undefined
+  if (!existing || typeof existing.defect === 'undefined') {
+    globalForPrisma.prisma = dbClient
+  } else {
+    // Reuse the existing client (already validated)
+    ;(db as unknown as Record<string, unknown>)['_reusedFromGlobal'] = true
+  }
+}

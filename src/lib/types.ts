@@ -1,15 +1,9 @@
-// Shared types for the frontend
+// Shared types for the Hygiene Management System
 
 export type ViewKey =
-  | "dashboard"
-  | "alerts"
-  | "customers"
-  | "contracts"
-  | "equipment"
-  | "visits"
-  | "inspections"
-  | "batteries"
-  | "consumables"
+  | "dashboard" | "inspections" | "agenda" | "reports" | "notifications"
+  | "messages" | "map" | "team" | "activity" | "alerts" | "capa" | "defects"
+  | "users" | "locations" | "templates" | "standards" | "audit" | "settings"
 
 export interface User {
   id: string
@@ -18,257 +12,244 @@ export interface User {
   role: string
   phone?: string
   active: boolean
+  avatar?: string
 }
 
-export interface Customer {
+export interface Location {
   id: string
   name: string
   code: string
-  category: string
   address?: string
   city?: string
-  contactPerson?: string
-  phone?: string
-  email?: string
-  notes?: string
+  gpsLat?: number
+  gpsLng?: number
+  facilityType: string
+  supervisorId?: string
   status: string
-  createdAt: string
-  locations?: CustomerLocation[]
-  contracts?: Contract[]
-  equipment?: Equipment[]
-  visits?: Visit[]
-  _count?: { contracts: number; equipment: number; visits: number }
+  supervisor?: User
+  inspections?: Inspection[]
+  _count?: { inspections: number; capas: number; defects: number }
 }
 
-export interface CustomerLocation {
-  id: string
-  customerId: string
-  name: string
-  floor?: string
-  notes?: string
-  _count?: { equipment: number }
-}
-
-export interface EquipmentCategory {
+export interface HygieneCategory {
   id: string
   name: string
   description?: string
-  usesBatteries: boolean
-  _count?: { equipment: number }
+  sortOrder: number
+  _count?: { items: number; capas: number; defects: number }
 }
 
-export interface Equipment {
+export interface InspectionTemplate {
   id: string
   name: string
+  description?: string
+  isActive: boolean
+  items?: TemplateItem[]
+  _count?: { items: number; inspections: number }
+}
+
+export interface TemplateItem {
+  id: string
+  templateId: string
   categoryId: string
-  brand?: string
-  model?: string
-  serialNumber: string
-  purchaseDate?: string
-  installationDate?: string
-  customerId?: string
-  contractId?: string
-  locationId?: string
-  batteryType?: string
-  operationalStatus: string
-  installationStatus: string
-  currentBatteryLevel: string
-  lastBatteryReplacement?: string
-  notes?: string
-  qrCode?: string
-  createdAt: string
-  category?: EquipmentCategory
-  customer?: Customer
-  contract?: Contract
-  location?: CustomerLocation
-  history?: EquipmentHistory[]
-  inspections?: Inspection[]
-  batteries?: BatteryReplacement[]
-  consumption?: ConsumptionRecord[]
-}
-
-export interface EquipmentHistory {
-  id: string
-  equipmentId: string
-  eventType: string
-  description: string
-  date: string
-  performedBy?: string
-  notes?: string
-}
-
-export interface Contract {
-  id: string
-  contractNumber: string
-  customerId: string
-  type: string
-  startDate: string
-  endDate: string
-  status: string
-  visitFrequency: string
-  customDays?: number
-  technicianId?: string
-  monthlyFee: number
-  notes?: string
-  customer?: Customer
-  technician?: User
-  equipment?: Equipment[]
-  visits?: Visit[]
-  lastCompletedVisit?: Visit | null
-  nextScheduledVisit?: Visit | null
-  totalCompletedVisits?: number
-  overdueVisits?: number
-  installedMachines?: number
-  _count?: { equipment: number; visits: number }
-}
-
-export interface Visit {
-  id: string
-  customerId: string
-  contractId?: string
-  scheduledDate: string
-  scheduledTime?: string
-  technicianId?: string
-  visitType: string
-  status: string
-  notes?: string
-  completedAt?: string
-  customer?: Customer
-  contract?: Contract
-  technician?: User
-  inspections?: Inspection[]
-  consumption?: ConsumptionRecord[]
-  batteries?: BatteryReplacement[]
-  _count?: { inspections: number; consumption: number; batteries: number }
+  question: string
+  description?: string
+  scoringMethod: string
+  weight: number
+  mandatory: boolean
+  photoRequired: boolean
+  sortOrder: number
+  category?: HygieneCategory
 }
 
 export interface Inspection {
   id: string
-  visitId: string
-  equipmentId: string
-  technicianId?: string
-  equipmentPresent: boolean
-  correctlyInstalled: boolean
-  correctlyPositioned: boolean
-  workingProperly: boolean
-  equipmentClean: boolean
-  batteryAvailable: string
-  batteryLevel: string
-  batteryReplacementRequired: boolean
-  consumablesAvailable: boolean
-  maintenanceRequired: boolean
-  equipmentDamaged: boolean
-  result: string
+  templateId: string
+  locationId: string
+  inspectorId?: string
+  createdById: string
+  title: string
+  scheduledDate: string
+  completedDate?: string
+  status: string
+  declineReason?: string
+  reviewComments?: string
+  correctionNotes?: string
+  overallScore?: number
+  compliancePercent?: number
+  createdAt: string
+  template?: InspectionTemplate
+  location?: Location
+  inspector?: User
+  createdBy?: User
+  items?: InspectionItem[]
+  history?: InspectionHistory[]
+  photos?: InspectionPhoto[]
+  capas?: CAPA[]
+  _count?: { items: number; history: number; photos: number; capas: number }
+}
+
+export interface InspectionItem {
+  id: string
+  inspectionId: string
+  templateItemId: string
+  response?: string
+  score?: number
   comments?: string
-  inspectedAt: string
-  equipment?: Equipment
-  visit?: Visit
-  technician?: User
+  correctiveRecommendation?: string
+  severity?: string
+  templateItem?: TemplateItem
   photos?: InspectionPhoto[]
 }
 
 export interface InspectionPhoto {
   id: string
   inspectionId: string
+  itemId?: string
   imageUrl: string
-  type: string
   caption?: string
+  type: string
+  isInternal: boolean
 }
 
-export interface BatteryReplacement {
+export interface InspectionHistory {
   id: string
-  equipmentId: string
-  customerId?: string
-  contractId?: string
-  visitId?: string
-  previousLevel: string
-  newLevel: string
-  batteryType?: string
-  quantityUsed: number
-  replacementDate: string
-  technicianId?: string
-  notes?: string
-  equipment?: Equipment
-  customer?: Customer
-  contract?: Contract
-  visit?: Visit
-  technician?: User
-}
-
-export interface ConsumableCategory {
-  id: string
-  name: string
-  description?: string
-  _count?: { products: number }
-}
-
-export interface Product {
-  id: string
-  name: string
-  categoryId: string
-  sku: string
-  unitOfMeasurement: string
-  currentStock: number
-  minimumStock: number
-  maximumStock: number
-  unitCost: number
-  supplier?: string
-  status: string
-  category?: ConsumableCategory
-  movements?: StockMovement[]
-  consumption?: ConsumptionRecord[]
-  technicianStock?: { technician: User; quantity: number }[]
-  _count?: { consumption: number }
-}
-
-export interface StockMovement {
-  id: string
-  productId: string
-  quantity: number
-  movementType: string
-  date: string
+  inspectionId: string
+  fromStatus?: string
+  toStatus: string
   userId?: string
-  reference?: string
-  notes?: string
-  product?: Product
+  comments?: string
+  timestamp: string
   user?: User
 }
 
-export interface ConsumptionRecord {
+export interface CAPA {
   id: string
-  productId: string
-  customerId?: string
-  contractId?: string
-  equipmentId?: string
-  visitId?: string
-  technicianId?: string
-  quantity: number
-  date: string
-  notes?: string
-  product?: Product
-  customer?: Customer
-  contract?: Contract
-  equipment?: Equipment
-  visit?: Visit
-  technician?: User
+  inspectionId?: string
+  locationId?: string
+  categoryId?: string
+  title: string
+  description: string
+  severity: string
+  correctiveAction?: string
+  assignedToId?: string
+  targetDate?: string
+  status: string
+  verificationComments?: string
+  closureDate?: string
+  createdAt: string
+  inspection?: Inspection
+  location?: Location
+  category?: HygieneCategory
+  assignedTo?: User
+  closedBy?: User
+  evidence?: CapaEvidence[]
+}
+
+export interface CapaEvidence {
+  id: string
+  capaId: string
+  imageUrl: string
+  caption?: string
+}
+
+export interface Defect {
+  id: string
+  inspectionId?: string
+  locationId?: string
+  categoryId?: string
+  title: string
+  description: string
+  severity: string
+  responsiblePerson?: string
+  resolutionDeadline?: string
+  status: string
+  resolvedAt?: string
+  resolutionNotes?: string
+  createdAt: string
+  location?: Location
+  category?: HygieneCategory
+}
+
+export interface Alert {
+  id: string
+  type: string
+  severity: string
+  inspectionId?: string
+  locationId?: string
+  title: string
+  message: string
+  status: string
+  resolvedById?: string
+  resolvedAt?: string
+  createdAt: string
+  location?: Location
+  inspection?: Inspection
+}
+
+export interface Notification {
+  id: string
+  userId: string
+  type: string
+  title: string
+  message: string
+  read: boolean
+  relatedId?: string
+  createdAt: string
+}
+
+export interface Message {
+  id: string
+  fromUserId: string
+  toUserId: string
+  subject: string
+  body: string
+  read: boolean
+  createdAt: string
+  sender?: User
+  recipient?: User
+}
+
+export interface Announcement {
+  id: string
+  createdById: string
+  title: string
+  body: string
+  audience: string
+  createdAt: string
+  createdBy?: User
+}
+
+export interface AuditLog {
+  id: string
+  userId?: string
+  userRole?: string
+  action: string
+  entityType: string
+  entityId?: string
+  before?: string
+  after?: string
+  reason?: string
+  createdAt: string
 }
 
 export interface DashboardData {
   kpis: {
-    customers: { totalCustomers: number; activeCustomers: number }
-    contracts: { totalActiveContracts: number; rentalContracts: number; folContracts: number; expiredContracts: number; approachingExpiration: number }
-    equipment: { totalEquipment: number; installedEquipment: number; operational: number; nonOperational: number; damaged: number; underMaintenance: number; needsReplacement: number }
-    visits: { totalVisitsMonth: number; completedVisits: number; scheduledVisits: number; pendingVisits: number; overdueVisits: number; upcomingVisits: number }
-    batteries: { healthyBatteries: number; lowBatteries: number; needReplacement: number; batteryReplacementsMonth: number }
-    consumables: { totalStock: number; estimatedMonthly: number; actualMonthly: number; lowStock: number; outOfStock: number }
+    total: number
+    completed: number
+    pending: number
+    awaitingReview: number
+    inProgress: number
+    overdue: number
+    avgCompliance: number
+    criticalViolations: number
+    openCapas: number
+    overdueCapas: number
   }
-  charts: {
-    monthlyVisits: { month: string; visits: number }[]
-    equipmentStatusDist: { name: string; value: number }[]
-    contractTypeDist: { name: string; value: number }[]
-    monthlyConsumption: { month: string; consumption: number }[]
-    equipByCustomerChart: { name: string; value: number }[]
-    batteryReplacementsChart: { month: string; replacements: number }[]
-    maintenanceOverview: { name: string; value: number }[]
-  }
+  complianceTrend: { month: string; compliance: number }[]
+  locationPerformance: { name: string; compliance: number; inspections: number }[]
+  categoryPerformance: { name: string; avgScore: number; violations: number }[]
+  inspectorLeaderboard: { name: string; completed: number; avgScore: number }[]
+  recentActivity: { id: string; action: string; entity: string; user: string; time: string }[]
+  statusBreakdown: { status: string; count: number }[]
 }

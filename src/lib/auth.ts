@@ -61,4 +61,4 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "nemchem-dev-secret-change-in-production",
 }
 
-export type AppRole = "ADMIN" | "MANAGER" | "TECHNICIAN"
+export type AppRole = "ADMIN" | "CEO" | "SUPERVISOR" | "INSPECTOR"

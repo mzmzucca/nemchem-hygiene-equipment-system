@@ -1,4 +1,4 @@
-// Hygiene Equipment Management, Inventory & Field Operations System
+// Hygiene Management System — Complete RBAC Inspection Platform
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,376 +9,346 @@ datasource db {
 }
 
 // ============================================================
-// USERS & AUTH
+// USERS & AUTH — 4 roles
 // ============================================================
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String
   password  String
-  role      String   @default("TECHNICIAN") // ADMIN | MANAGER | TECHNICIAN
+  role      String   @default("INSPECTOR") // ADMIN | CEO | SUPERVISOR | INSPECTOR
   phone     String?
   active    Boolean  @default(true)
   avatar    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  contractsAssigned   Contract[]   @relation("ContractTechnician")
-  visitsAssigned      Visit[]
-  inspections         Inspection[]
-  batteryReplacements BatteryReplacement[]
-  stockMovements      StockMovement[]
-  technicianStock     TechnicianStock[]
-  consumptionRecords  ConsumptionRecord[]
+  inspectionsCreated   Inspection[]   @relation("InspectionCreator")
+  inspectionsAssigned  Inspection[]   @relation("InspectionInspector")
+  capasAssigned        CAPA[]         @relation("CapaAssignee")
+  capasClosed          CAPA[]         @relation("CapaClosedBy")
+  notifications        Notification[]
+  messagesSent         Message[]      @relation("MessageSender")
+  messagesReceived     Message[]      @relation("MessageRecipient")
+  announcements        Announcement[]
+  auditLogs            AuditLog[]
+  inspectionHistory    InspectionHistory[]
+  locationsSupervised  Location[]     @relation("LocationSupervisor")
 }
 
 // ============================================================
-// CUSTOMERS & LOCATIONS
+// LOCATIONS & FACILITIES
 // ============================================================
-model Customer {
+model Location {
   id            String   @id @default(cuid())
   name          String
   code          String   @unique
-  category      String   @default("OTHER") // HOTEL | RESTAURANT | HOSPITAL | OFFICE | SHOPPING_CENTRE | OTHER
   address       String?
   city          String?
-  contactPerson String?
-  phone         String?
-  email         String?
-  notes         String?
+  gpsLat        Float?
+  gpsLng        Float?
+  facilityType  String   @default("OTHER") // HOTEL | RESTAURANT | HOSPITAL | OFFICE | FACTORY | KITCHEN | OTHER
+  supervisorId  String?
   status        String   @default("ACTIVE") // ACTIVE | INACTIVE
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
 
-  locations   CustomerLocation[]
-  contracts   Contract[]
-  equipment   Equipment[]
-  visits      Visit[]
-  consumption ConsumptionRecord[]
-  batteries   BatteryReplacement[]
-}
-
-model CustomerLocation {
-  id         String   @id @default(cuid())
-  customerId String
-  name       String
-  floor      String?
-  notes      String?
-  createdAt  DateTime @default(now())
-
-  customer  Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  equipment Equipment[]
+  supervisor     User?        @relation("LocationSupervisor", fields: [supervisorId], references: [id])
+  inspections    Inspection[]
+  capas          CAPA[]
+  defects        Defect[]
+  alerts         Alert[]
 }
 
 // ============================================================
-// EQUIPMENT CATEGORIES
+// HYGIENE CATEGORIES & TEMPLATES
 // ============================================================
-model EquipmentCategory {
-  id           String   @id @default(cuid())
-  name         String
-  description  String?
-  usesBatteries Boolean @default(true)
-  createdAt    DateTime @default(now())
-
-  equipment           Equipment[]
-  consumptionRates    EquipmentConsumptionRate[]
-}
-
-// ============================================================
-// EQUIPMENT & HISTORY
-// ============================================================
-model Equipment {
-  id                   String   @id @default(cuid())
-  name                 String
-  categoryId           String
-  brand                String?
-  model                String?
-  serialNumber         String   @unique
-  purchaseDate         DateTime?
-  installationDate     DateTime?
-  customerId           String?
-  contractId           String?
-  locationId           String?
-  batteryType          String?
-  operationalStatus    String   @default("OPERATIONAL") // OPERATIONAL | NOT_OPERATIONAL | DAMAGED | UNDER_MAINTENANCE | MISSING | NEEDS_REPLACEMENT | DECOMMISSIONED
-  installationStatus   String   @default("INSTALLATION_PENDING") // CORRECTLY_INSTALLED | INCORRECTLY_INSTALLED | NEEDS_REPOSITIONING | INSTALLATION_PENDING
-  currentBatteryLevel  String   @default("UNKNOWN") // FULL | SEVENTY_FIVE | FIFTY | TWENTY_FIVE | EMPTY | UNKNOWN | NA
-  lastBatteryReplacement DateTime?
-  notes                String?
-  qrCode               String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-
-  category    EquipmentCategory     @relation(fields: [categoryId], references: [id])
-  customer    Customer?             @relation(fields: [customerId], references: [id])
-  contract    Contract?             @relation(fields: [contractId], references: [id])
-  location    CustomerLocation?     @relation(fields: [locationId], references: [id])
-  history     EquipmentHistory[]
-  inspections Inspection[]
-  batteries   BatteryReplacement[]
-  consumption ConsumptionRecord[]
-
-  @@index([customerId])
-  @@index([contractId])
-}
-
-model EquipmentHistory {
+model HygieneCategory {
   id          String   @id @default(cuid())
-  equipmentId String
-  eventType   String // REGISTRATION | INSTALLATION | CUSTOMER_ASSIGNMENT | CONTRACT_ASSIGNMENT | INSPECTION | MAINTENANCE | BATTERY_REPLACEMENT | CONSUMABLE_USAGE | RELOCATION | REPLACEMENT | DECOMMISSIONING
-  description String
-  date        DateTime @default(now())
-  performedBy String?
-  notes       String?
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
 
-  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  items       TemplateItem[]
+  capas       CAPA[]
+  defects     Defect[]
 }
 
-// ============================================================
-// CONTRACTS (Rental & FOL)
-// ============================================================
-model Contract {
-  id             String   @id @default(cuid())
-  contractNumber String   @unique
-  customerId     String
-  type           String   @default("RENTAL") // RENTAL | FOL
-  startDate      DateTime
-  endDate        DateTime
-  status         String   @default("ACTIVE") // ACTIVE | EXPIRED | TERMINATED | SUSPENDED | PENDING
-  visitFrequency String   @default("MONTHLY") // DAILY | WEEKLY | BIWEEKLY | MONTHLY | CUSTOM
-  customDays     Int? // for custom frequency
-  technicianId   String?
-  monthlyFee     Float    @default(0)
-  notes          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+model InspectionTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  technician User?      @relation("ContractTechnician", fields: [technicianId], references: [id])
-  equipment  Equipment[]
-  visits     Visit[]
-  batteries  BatteryReplacement[]
-  consumption ConsumptionRecord[]
-}
-
-// ============================================================
-// VISITS
-// ============================================================
-model Visit {
-  id            String   @id @default(cuid())
-  customerId    String
-  contractId    String?
-  scheduledDate DateTime
-  scheduledTime String?
-  technicianId  String?
-  visitType     String   @default("INSPECTION") // INSPECTION | MAINTENANCE | INSTALLATION | REPLACEMENT | OTHER
-  status        String   @default("SCHEDULED") // SCHEDULED | IN_PROGRESS | COMPLETED | PENDING | CANCELLED | OVERDUE
-  notes         String?
-  completedAt   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  customer    Customer      @relation(fields: [customerId], references: [id])
-  contract    Contract?     @relation(fields: [contractId], references: [id])
-  technician  User?         @relation(fields: [technicianId], references: [id])
+  items       TemplateItem[]
   inspections Inspection[]
-  consumption ConsumptionRecord[]
-  batteries   BatteryReplacement[]
+}
 
-  @@index([customerId])
-  @@index([contractId])
-  @@index([technicianId])
+model TemplateItem {
+  id             String   @id @default(cuid())
+  templateId     String
+  categoryId     String
+  question       String
+  description    String?
+  scoringMethod  String   @default("COMPLIANCE") // COMPLIANCE | SCORE | YES_NO
+  weight         Float    @default(1.0)
+  mandatory      Boolean  @default(true)
+  photoRequired  Boolean  @default(false)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  template   InspectionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  category   HygieneCategory    @relation(fields: [categoryId], references: [id])
+  responses  InspectionItem[]
 }
 
 // ============================================================
-// INSPECTIONS
+// INSPECTIONS — Core entity with full workflow
 // ============================================================
 model Inspection {
-  id                         String   @id @default(cuid())
-  visitId                    String
-  equipmentId                String
-  technicianId               String?
-  equipmentPresent           Boolean  @default(true)
-  correctlyInstalled         Boolean  @default(true)
-  correctlyPositioned        Boolean  @default(true)
-  workingProperly            Boolean  @default(true)
-  equipmentClean             Boolean  @default(true)
-  batteryAvailable           String   @default("N/A") // YES | NO | N/A
-  batteryLevel               String   @default("UNKNOWN") // FULL | SEVENTY_FIVE | FIFTY | TWENTY_FIVE | EMPTY | UNKNOWN | NA
-  batteryReplacementRequired Boolean  @default(false)
-  consumablesAvailable       Boolean  @default(true)
-  maintenanceRequired        Boolean  @default(false)
-  equipmentDamaged           Boolean  @default(false)
-  result                     String   @default("PASSED") // PASSED | PASSED_WITH_OBSERVATIONS | FAILED | MAINTENANCE_REQUIRED | REPLACEMENT_REQUIRED
-  comments                   String?
-  inspectedAt                DateTime @default(now())
-  createdAt                  DateTime @default(now())
+  id               String    @id @default(cuid())
+  templateId       String
+  locationId       String
+  inspectorId      String?
+  createdById      String
+  title            String
+  scheduledDate    DateTime
+  completedDate    DateTime?
+  status           String    @default("PENDING") // PENDING | ASSIGNED | ACCEPTED | DECLINED | IN_PROGRESS | DRAFT | SUBMITTED | UNDER_REVIEW | RETURNED | APPROVED | CLOSED
+  declineReason    String?
+  reviewComments   String?
+  correctionNotes  String?
+  overallScore     Float?
+  compliancePercent Float?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  visit     Visit     @relation(fields: [visitId], references: [id], onDelete: Cascade)
-  equipment Equipment @relation(fields: [equipmentId], references: [id])
-  technician User?    @relation(fields: [technicianId], references: [id])
-  photos    InspectionPhoto[]
+  template    InspectionTemplate  @relation(fields: [templateId], references: [id])
+  location    Location            @relation(fields: [locationId], references: [id])
+  inspector   User?               @relation("InspectionInspector", fields: [inspectorId], references: [id])
+  createdBy   User                @relation("InspectionCreator", fields: [createdById], references: [id])
+  items       InspectionItem[]
+  history     InspectionHistory[]
+  photos      InspectionPhoto[]
+  capas       CAPA[]
+  defects     Defect[]
+  alerts      Alert[]
+
+  @@index([inspectorId])
+  @@index([locationId])
+  @@index([status])
+}
+
+model InspectionItem {
+  id                    String   @id @default(cuid())
+  inspectionId          String
+  templateItemId        String
+  response              String? // COMPLIANT | PARTIALLY_COMPLIANT | NON_COMPLIANT | NOT_APPLICABLE
+  score                 Float?
+  comments              String?
+  correctiveRecommendation String?
+  severity              String? // CRITICAL | HIGH | MEDIUM | LOW
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  inspection     Inspection   @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  templateItem   TemplateItem @relation(fields: [templateItemId], references: [id])
+  photos         InspectionPhoto[]
 }
 
 model InspectionPhoto {
   id            String   @id @default(cuid())
   inspectionId  String
+  itemId        String?
   imageUrl      String
-  type          String   @default("GENERAL") // BEFORE | AFTER | GENERAL
   caption       String?
+  type          String   @default("GENERAL") // BEFORE | AFTER | GENERAL | EVIDENCE
+  isInternal    Boolean  @default(false) // internal photos excluded from client reports
   createdAt     DateTime @default(now())
 
+  inspection Inspection       @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  item       InspectionItem?  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model InspectionHistory {
+  id            String   @id @default(cuid())
+  inspectionId  String
+  fromStatus    String?
+  toStatus      String
+  userId        String?
+  comments      String?
+  timestamp     DateTime @default(now())
+
   inspection Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  user       User?      @relation(fields: [userId], references: [id])
 }
 
 // ============================================================
-// BATTERY MANAGEMENT
+// CAPA — Corrective and Preventive Actions
 // ============================================================
-model BatteryReplacement {
-  id             String   @id @default(cuid())
-  equipmentId    String
-  customerId     String?
-  contractId     String?
-  visitId        String?
-  previousLevel  String   @default("UNKNOWN")
-  newLevel       String   @default("FULL")
-  batteryType    String?
-  quantityUsed   Int      @default(0)
-  replacementDate DateTime @default(now())
-  technicianId   String?
-  notes          String?
+model CAPA {
+  id                 String    @id @default(cuid())
+  inspectionId       String?
+  locationId         String?
+  categoryId         String?
+  title              String
+  description        String
+  severity           String    @default("MEDIUM") // CRITICAL | HIGH | MEDIUM | LOW
+  correctiveAction   String?
+  assignedToId       String?
+  targetDate         DateTime?
+  status             String    @default("OPEN") // OPEN | ASSIGNED | IN_PROGRESS | SUBMITTED_FOR_VERIFICATION | CLOSED | CANCELLED | OVERDUE
+  verificationComments String?
+  closedById         String?
+  closureDate        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  equipment  Equipment @relation(fields: [equipmentId], references: [id])
-  customer   Customer?  @relation(fields: [customerId], references: [id])
-  contract   Contract?  @relation(fields: [contractId], references: [id])
-  visit      Visit?     @relation(fields: [visitId], references: [id])
-  technician User?      @relation(fields: [technicianId], references: [id])
+  inspection   Inspection? @relation(fields: [inspectionId], references: [id])
+  location     Location?   @relation(fields: [locationId], references: [id])
+  category     HygieneCategory? @relation(fields: [categoryId], references: [id])
+  assignedTo   User?       @relation("CapaAssignee", fields: [assignedToId], references: [id])
+  closedBy     User?       @relation("CapaClosedBy", fields: [closedById], references: [id])
+  evidence     CapaEvidence[]
+
+  @@index([assignedToId])
+  @@index([status])
+}
+
+model CapaEvidence {
+  id        String   @id @default(cuid())
+  capaId    String
+  imageUrl  String
+  caption   String?
+  uploadedById String?
+  createdAt DateTime @default(now())
+
+  capa CAPA @relation(fields: [capaId], references: [id], onDelete: Cascade)
 }
 
 // ============================================================
-// CONSUMABLES & STOCK
+// DEFECTS / NON-COMPLIANCE
 // ============================================================
-model ConsumableCategory {
+model Defect {
+  id                 String    @id @default(cuid())
+  inspectionId       String?
+  locationId         String?
+  categoryId         String?
+  title              String
+  description        String
+  severity           String    @default("MEDIUM") // CRITICAL | HIGH | MEDIUM | LOW
+  responsiblePerson  String?
+  resolutionDeadline DateTime?
+  status             String    @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | ESCALATED
+  resolvedAt         DateTime?
+  resolutionNotes    String?
+  createdAt          DateTime  @default(now())
+
+  inspection Inspection? @relation(fields: [inspectionId], references: [id])
+  location   Location?   @relation(fields: [locationId], references: [id])
+  category   HygieneCategory? @relation(fields: [categoryId], references: [id])
+
+  @@index([status])
+  @@index([severity])
+}
+
+// ============================================================
+// ALERTS
+// ============================================================
+model Alert {
+  id           String    @id @default(cuid())
+  type         String    // CRITICAL_VIOLATION | LOW_SCORE | REPEATED_NON_COMPLIANCE | OVERDUE_CAPA | MISSED_INSPECTION | DECLINING_COMPLIANCE
+  severity     String    @default("HIGH") // CRITICAL | HIGH | MEDIUM | LOW
+  inspectionId String?
+  locationId   String?
+  title        String
+  message      String
+  status       String    @default("OPEN") // OPEN | RESOLVED
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  inspection Inspection? @relation(fields: [inspectionId], references: [id])
+  location   Location?   @relation(fields: [locationId], references: [id])
+
+  @@index([status])
+}
+
+// ============================================================
+// NOTIFICATIONS & MESSAGES
+// ============================================================
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String   // INSPECTION_ASSIGNED | TASK_ACCEPTED | INSPECTION_SUBMITTED | INSPECTION_APPROVED | INSPECTION_RETURNED | CAPA_ASSIGNED | ALERT | ANNOUNCEMENT | MESSAGE
+  title      String
+  message    String
+  read       Boolean  @default(false)
+  relatedId  String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+model Message {
   id          String   @id @default(cuid())
-  name        String
-  description String?
+  fromUserId  String
+  toUserId    String
+  subject     String
+  body        String
+  read        Boolean  @default(false)
   createdAt   DateTime @default(now())
 
-  products Product[]
+  sender   User @relation("MessageSender", fields: [fromUserId], references: [id])
+  recipient User @relation("MessageRecipient", fields: [toUserId], references: [id])
+
+  @@index([toUserId, read])
 }
 
-model Product {
-  id             String   @id @default(cuid())
-  name           String
-  categoryId     String
-  sku            String   @unique
-  unitOfMeasurement String @default("unit") // unit | box | liter | kg | pack
-  currentStock   Int      @default(0)
-  minimumStock   Int      @default(0)
-  maximumStock   Int      @default(0)
-  unitCost       Float    @default(0)
-  supplier       String?
-  status         String   @default("ACTIVE") // ACTIVE | INACTIVE
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+model Announcement {
+  id         String   @id @default(cuid())
+  createdById String
+  title      String
+  body       String
+  audience   String   @default("ALL") // ALL | ADMIN | CEO | SUPERVISOR | INSPECTOR
+  createdAt  DateTime @default(now())
 
-  category       ConsumableCategory    @relation(fields: [categoryId], references: [id])
-  movements      StockMovement[]
-  consumption    ConsumptionRecord[]
-  technicianStock TechnicianStock[]
-  consumptionRates EquipmentConsumptionRate[]
-
-  @@index([categoryId])
+  createdBy User @relation(fields: [createdById], references: [id])
 }
 
-model StockMovement {
-  id          String   @id @default(cuid())
-  productId   String
-  quantity    Int
-  movementType String // ENTRY | EXIT | ADJUSTMENT | TRANSFER | ALLOCATION | RETURN
-  date        DateTime @default(now())
-  userId      String?
-  reference   String?
-  notes       String?
+// ============================================================
+// AUDIT LOG — append-only
+// ============================================================
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  userRole   String?
+  action     String   // CREATE | UPDATE | DELETE | STATUS_CHANGE | APPROVE | RETURN | ASSIGN | LOGIN | EXPORT
+  entityType String   // Inspection | CAPA | Defect | User | Template | Location | etc.
+  entityId   String?
+  before     String?
+  after      String?
+  reason     String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
 
-  product Product @relation(fields: [productId], references: [id])
-  user    User?   @relation(fields: [userId], references: [id])
-}
+  user User? @relation(fields: [userId], references: [id])
 
-model TechnicianStock {
-  id           String @id @default(cuid())
-  productId    String
-  technicianId String
-  quantity     Int    @default(0)
-  updatedAt    DateTime @updatedAt
-
-  product    Product @relation(fields: [productId], references: [id])
-  technician User    @relation(fields: [technicianId], references: [id])
-
-  @@unique([productId, technicianId])
-}
-
-model ConsumptionRecord {
-  id           String   @id @default(cuid())
-  productId    String
-  customerId   String?
-  contractId   String?
-  equipmentId  String?
-  visitId      String?
-  technicianId String?
-  quantity     Int
-  date         DateTime @default(now())
-  notes        String?
-
-  product    Product    @relation(fields: [productId], references: [id])
-  customer   Customer?  @relation(fields: [customerId], references: [id])
-  contract   Contract?  @relation(fields: [contractId], references: [id])
-  equipment  Equipment? @relation(fields: [equipmentId], references: [id])
-  visit      Visit?     @relation(fields: [visitId], references: [id])
-  technician User?      @relation(fields: [technicianId], references: [id])
-}
-
-model EquipmentConsumptionRate {
-  id           String   @id @default(cuid())
-  categoryId   String
-  productId    String
-  averageConsumptionPerMonth Float @default(0)
-
-  category EquipmentCategory  @relation(fields: [categoryId], references: [id])
-  product  Product            @relation(fields: [productId], references: [id])
-
-  @@unique([categoryId, productId])
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // ============================================================
 // SYSTEM SETTINGS
 // ============================================================
 model SystemSetting {
-  id    String @id @default(cuid())
-  key   String @unique
-  value String
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
   updatedAt DateTime @updatedAt
-}
-
-// ============================================================
-// AUDIT LOG — append-only, never updated or deleted
-// Records every correction, status change, and sensitive
-// operation for compliance traceability.
-// ============================================================
-model AuditLog {
-  id         String   @id @default(cuid())
-  userId     String?  // who performed the action
-  userRole   String?  // role at time of action
-  action     String   // CREATE | UPDATE | DELETE | CORRECTION | STATUS_CHANGE | LOGIN | EXPORT
-  entityType String   // Inspection | Visit | Contract | Equipment | StockMovement | etc.
-  entityId   String?
-  before     String?  // JSON snapshot of state before (for updates/corrections)
-  after      String?  // JSON snapshot of state after
-  reason     String?  // justification (required for corrections)
-  ipAddress  String?
-  createdAt  DateTime @default(now())
-
-  @@index([entityType, entityId])
-  @@index([userId])
-  @@index([createdAt])
 }

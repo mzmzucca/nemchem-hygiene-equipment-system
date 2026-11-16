@@ -1,93 +1,26 @@
-# NemChem — Hygiene Equipment Management System
+# Hygiene Management System
 
-> A complete, production-ready **Hygiene Equipment Management, Inventory and Field Operations System** for NemChem Moçambique. Executive proposal prepared for **Sérgio Zucca, Chief Executive Officer**.
+> A comprehensive hygiene inspection, compliance monitoring, and corrective action platform — built for NemChem Moçambique with the same RBAC philosophy as [FIMS](https://github.com/mzmzucca/fims.git).
 
 ---
 
 ## Overview
 
-This repository contains both the **application source code** and the **executive documentation** for a centralised platform that enables NemChem to manage all hygiene equipment installed at customer locations — including hotels, restaurants, hospitals, offices and other commercial establishments.
+This system enables the company to manage hygiene inspections across all locations, monitor compliance standards, identify non-compliance, track corrective actions (CAPA), and provide management with full visibility into hygiene performance.
 
-The system provides complete visibility into:
+### Four User Roles with Full RBAC
 
-- Customers and their contracts (Rental & FOL)
-- Equipment inventory, installation locations and operational conditions
-- Technical visitation schedules and field inspections
-- Battery levels and replacements
-- Consumables, stock management and consumption tracking
-- Equipment maintenance and lifecycle history
-- Technician activities and operational reporting
+| Role | Purpose | Nav Items |
+|------|---------|-----------|
+| **ADMIN** | System administrator — full access | All 18 modules |
+| **CEO** | Executive oversight — company-wide visibility | 9 modules |
+| **SUPERVISOR** | Operational management — inspection operations | 15 modules |
+| **INSPECTOR** | Field operations — own inspections only | 5 modules |
 
----
-
-## Repository Structure
-
-```
-.
-├── README.md                          # This file
-├── docs/                              # Executive documents
-│   ├── NemChem_Executive_Proposal_Hygiene_Equipment_System.pdf    # Final executive document (13 pages)
-│   ├── NemChem_Executive_Proposal_Hygiene_Equipment_System.docx   # Editable Word version
-│   └── Apresentacao_Executiva_Sistema_Gestao_Equipamentos_Higiene.pptx  # Original presentation (Portuguese)
-├── assets/
-│   └── nemchem_logo.png               # NemChem Moçambique brand logo
-│
-├── prisma/
-│   ├── schema.prisma                  # Database schema (16 models)
-│   └── seed.ts                        # Seed script with realistic demo data
-├── src/
-│   ├── app/
-│   │   ├── page.tsx                   # Main application entry (single-page app)
-│   │   ├── layout.tsx                 # Root layout
-│   │   ├── globals.css                # Global styles & theme
-│   │   └── api/                       # REST API routes (19 endpoints)
-│   │       ├── dashboard/
-│   │       ├── customers/
-│   │       ├── contracts/
-│   │       ├── equipment/
-│   │       ├── visits/
-│   │       ├── inspections/
-│   │       ├── batteries/
-│   │       ├── products/
-│   │       ├── stock-movements/
-│   │       ├── consumption/
-│   │       ├── technicians/
-│   │       ├── settings/
-│   │       └── ...
-│   ├── components/
-│   │   ├── app-shell.tsx              # Sidebar navigation + layout shell
-│   │   ├── shared.tsx                 # Shared UI components (KPI cards, badges, etc.)
-│   │   ├── providers.tsx              # Theme + React Query providers
-│   │   ├── footer.tsx
-│   │   ├── modules/                   # The 8 application modules
-│   │   │   ├── dashboard.tsx
-│   │   │   ├── customers.tsx
-│   │   │   ├── contracts.tsx
-│   │   │   ├── equipment.tsx
-│   │   │   ├── visits.tsx
-│   │   │   ├── inspections.tsx
-│   │   │   ├── batteries.tsx
-│   │   │   └── consumables.tsx
-│   │   └── ui/                        # shadcn/ui component library
-│   ├── lib/
-│   │   ├── db.ts                      # Prisma client
-│   │   ├── types.ts                   # TypeScript type definitions
-│   │   ├── labels.ts                  # Label maps & color utilities
-│   │   ├── nav-store.ts               # Zustand navigation store
-│   │   └── api.ts                     # API helpers
-│   └── hooks/
-│       ├── use-api.ts                 # React Query data hooks
-│       ├── use-toast.ts
-│       └── use-mobile.ts
-│
-├── package.json
-├── tsconfig.json
-├── next.config.ts
-├── tailwind.config.ts
-├── components.json                    # shadcn/ui config
-├── .env.example                       # Environment variable template
-└── .gitignore
-```
+Permissions are enforced at three levels:
+1. **Frontend** — nav items and action buttons filtered by role
+2. **API** — role guards on every write endpoint
+3. **Database** — inspector data scoping (own inspections/CAPAs only)
 
 ---
 
@@ -97,12 +30,11 @@ The system provides complete visibility into:
 |-------|-----------|
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript 5 |
-| Styling | Tailwind CSS 4 + shadcn/ui (New York) |
+| Styling | Tailwind CSS 4 + shadcn/ui |
 | Database | Prisma ORM (SQLite — migrate to PostgreSQL for production) |
-| State | Zustand (client) + TanStack Query (server) |
+| Auth | NextAuth.js v4 (credentials, JWT sessions, role-based) |
 | Charts | Recharts |
 | Icons | Lucide React |
-| Auth | NextAuth.js v4 (credentials provider, JWT sessions, role-based access) |
 | Image Processing | Sharp (photo compression) |
 
 ---
@@ -110,196 +42,180 @@ The system provides complete visibility into:
 ## Getting Started
 
 ### Prerequisites
-
-- [Node.js](https://nodejs.org/) 18+ or [Bun](https://bun.sh/) runtime
-- A GitHub account (to clone this repo)
+- [Node.js](https://nodejs.org/) 18+ or [Bun](https://bun.sh/)
+- A GitHub account
 
 ### Installation
 
 ```bash
-# 1. Clone the repository
+# Clone
 git clone https://github.com/mzmzucca/nemchem-hygiene-equipment-system.git
 cd nemchem-hygiene-equipment-system
 
-# 2. Install dependencies
-bun install
-# or: npm install
+# Install dependencies
+bun install     # or: npm install
 
-# 3. Set up environment variables
+# Set up environment
 cp .env.example .env
 
-# 4. Create the database and push the schema
-bun run db:push
+# Create database and push schema
+bun run db:push     # or: npx prisma db push
 
-# 5. Seed the database with demo data
-bun run prisma/seed.ts
+# Generate Prisma client
+bun run db:generate     # or: npx prisma generate
+
+# Seed with demo data
+bun prisma/seed.ts     # or: npx tsx prisma/seed.ts
+
+# Start the dev server
+bun run dev     # or: npm run dev
 ```
 
-### Running the Application
+Open **http://localhost:3000** in your browser.
 
-```bash
-# Start the development server
-bun run dev
-# or: npm run dev
-```
-
-The application will be available at `http://localhost:3000`.
-
-### Available Scripts
-
-| Script | Description |
-|--------|-------------|
-| `bun run dev` | Start the development server (port 3000) |
-| `bun run lint` | Run ESLint to check code quality |
-| `bun run db:push` | Push Prisma schema to the database |
-| `bun run db:generate` | Generate Prisma client |
-| `bun run db:migrate` | Create and apply a database migration |
-| `bun run db:reset` | Reset the database (destructive) |
+> **Windows note:** If `npm run dev` fails with a `tee` error, edit `package.json` and change the `dev` script to just `"next dev -p 3000"` (remove `2>&1 | tee dev.log`).
 
 ---
 
-## Application Modules
-
-The system is built as a single-page application with sidebar navigation across 8 interconnected modules:
-
-| Module | Description |
-|--------|-------------|
-| **Dashboard** | 30+ KPIs and 7 live charts across all operational areas |
-| **Customers** | Customer profiles with 7 tabs (contracts, equipment, visits, consumption, batteries, reports) |
-| **Contracts** | Rental & FOL contract management with status transitions and auto-computed visit tracking |
-| **Equipment** | Full asset lifecycle: registration, installation, inspections, maintenance, decommissioning |
-| **Visits** | Monthly calendar + list views with automatic next-visit scheduling |
-| **Inspections** | Mobile-friendly technician inspection workflow with 11-point checklist |
-| **Batteries** | Battery level tracking, replacement workflow, and configurable threshold alerts |
-| **Consumables** | Stock management with estimated vs actual consumption tracking |
-
----
-
-## Database Schema
-
-The system uses 17 interconnected Prisma models:
-
-- **User** — System users (Admin, Manager, Technician roles) with hashed passwords
-- **Customer** / **CustomerLocation** — Customer profiles and site locations
-- **EquipmentCategory** / **Equipment** / **EquipmentHistory** — Asset management with full lifecycle
-- **Contract** — Rental and FOL contracts
-- **Visit** — Technical visit scheduling
-- **Inspection** / **InspectionPhoto** — Field inspection records (immutable after submission; corrections via audit)
-- **BatteryReplacement** — Battery replacement history
-- **ConsumableCategory** / **Product** / **StockMovement** / **ConsumptionRecord** / **EquipmentConsumptionRate** / **TechnicianStock** — Inventory management
-- **SystemSetting** — Configurable system parameters
-- **AuditLog** — Append-only event log (corrections, status changes, sensitive operations)
-
----
-
-## Authentication & Authorization
-
-The system uses NextAuth.js v4 with a credentials provider and JWT sessions.
-
-### Roles
-
-| Role | Access |
-|------|--------|
-| **ADMIN** | Full access — configure users, settings, all modules |
-| **MANAGER** | Operations — customers, contracts, schedule, validation, audit logs |
-| **TECHNICIAN** | Field ops — assigned visits, inspections, stock allocation |
-
-### Demo Accounts
+## Demo Accounts
 
 | Email | Password | Role |
 |-------|----------|------|
 | `admin@hygiene.co` | `admin123` | Admin |
-| `manager@hygiene.co` | `manager123` | Manager |
-| `joao@hygiene.co` | `tech123` | Technician |
-
-Passwords are hashed using Node's `scrypt` (see `src/lib/password.ts`).
-
-### API Guards
-
-Write operations are protected by role-based guards in `src/lib/auth-guard.ts`:
-- `requireAuth()` — requires a valid session (production)
-- `requireAuthOrDemo()` — falls back to a demo admin user (prototype mode)
-- `requireRole(...roles)` — requires specific roles
-- `requireTechnicianOrManager(resourceTechId)` — ownership check for technicians
-
-### Audit Log
-
-Every correction, status change, and sensitive operation is recorded in the append-only `AuditLog` table with before/after snapshots. The audit trail is visible to MANAGER and ADMIN roles at `/api/audit`.
-
-### Key Business Rules Enforced
-
-- **Inspection submissions run in a database transaction** — if any step fails, the whole operation rolls back
-- **Stock cannot go negative** via routine EXIT/ALLOCATION — rejected with a clear error; only explicit ADJUSTMENT can reconcile
-- **Submitted inspections cannot be edited directly** — corrections require MANAGER/ADMIN role and a mandatory justification reason, logged to AuditLog
-- **Cancelled visits never update the last completed visit** — only `status === "COMPLETED"` counts
+| `sergio.zucca@nemchem.co` | `ceo123` | CEO |
+| `supervisor@hygiene.co` | `super123` | Supervisor |
+| `joao@hygiene.co` | `insp123` | Inspector |
 
 ---
 
-## Executive Documentation
+## Modules (18 total)
 
-| File | Format | Language | Description |
-|------|--------|----------|-------------|
-| `NemChem_Executive_Proposal_Hygiene_Equipment_System.pdf` | PDF | English | Final CEO-ready executive proposal — translated, NemChem-branded (navy & white), 13 pages |
-| `NemChem_Executive_Proposal_Hygiene_Equipment_System.docx` | Word | English | Editable version of the executive proposal |
-| `Apresentacao_Executiva_Sistema_Gestao_Equipamentos_Higiene.pptx` | PowerPoint | Portuguese | Original 16-slide executive presentation |
+| Module | Admin | CEO | Supervisor | Inspector |
+|--------|:-----:|:---:|:----------:|:---------:|
+| Dashboard | ✓ | ✓ | ✓ | ✓ |
+| Hygiene Inspections | ✓ | ✓ | ✓ | ✓ |
+| Agenda / Schedule | ✓ | — | ✓ | — |
+| CAPA Management | ✓ | ✓ | ✓ | ✓ |
+| Defects / Non-compliance | ✓ | ✓ | ✓ | — |
+| Hygiene Alerts | ✓ | ✓ | ✓ | — |
+| Reports Center | ✓ | ✓ | ✓ | — |
+| Activity Reports | ✓ | ✓ | ✓ | — |
+| Team Performance | ✓ | — | ✓ | — |
+| Field Map | ✓ | — | ✓ | — |
+| Locations / Facilities | ✓ | — | ✓ | — |
+| Inspection Templates | ✓ | — | — | — |
+| Hygiene Standards | ✓ | — | ✓ | — |
+| Users | ✓ | — | — | — |
+| Audit Logs | ✓ | ✓ | ✓ | — |
+| Settings | ✓ | — | — | — |
+| Notifications | ✓ | ✓ | ✓ | ✓ |
+| Messages | ✓ | ✓ | ✓ | ✓ |
 
-### Document Structure (15 sections)
+---
 
-1. Executive Summary
-2. Framing & Meeting Objective
-3. The Operational Challenge
-4. Proposed Vision
-5. Operational Model — Technical Visit Cycle
-6. Proposed Functional Modules
-7. Asset Management
-8. Consumables — Estimation, Real Consumption & Inventory
-9. Governance — User Profiles & Responsibilities
-10. Management Information — Key Indicators
-11. Reference Architecture
-12. Phased Implementation
-13. Risks & Controls
-14. Decisions to Be Taken
-15. Proposed Next Steps
+## Inspection Workflow
+
+The core inspection lifecycle supports 11 statuses:
+
+```
+PENDING → ASSIGNED → ACCEPTED/DECLINED → IN_PROGRESS → DRAFT
+→ SUBMITTED → UNDER_REVIEW → APPROVED/RETURNED → CLOSED
+```
+
+Key business rules enforced:
+- **Self-approval prevention** — you cannot approve your own inspection
+- **Decline requires a reason** — declining an assignment is logged with justification
+- **Return requires review comments** — corrections must include instructions
+- **Only Admin can reopen** closed inspections
+- **Every transition is audited** — status changes logged with user, timestamp, comments
+
+---
+
+## Key Features
+
+### Hygiene Scoring & Compliance
+- Per-item scoring: Compliant / Partially Compliant / Non-Compliant / Not Applicable
+- Automatic compliance percentage calculation (N/A excluded)
+- Category and location-level compliance rollup
+- Configurable severity levels: Critical / High / Medium / Low
+
+### CAPA (Corrective & Preventive Actions)
+- Auto-created from critical non-compliances during inspection submission
+- Full lifecycle: Open → Assigned → In Progress → Submitted for Verification → Closed
+- Evidence upload with photo compression
+- Overdue tracking with automatic alerts
+
+### Inspection Templates
+- Admin-managed customizable templates with checklist items
+- 12 hygiene categories (Personal Hygiene, Handwashing, Kitchen, Pest Control, etc.)
+- Configurable scoring method, weight, mandatory flag, photo requirement
+
+### Audit Trail
+- Append-only audit log for every correction, status change, and sensitive operation
+- Before/after JSON snapshots with user ID, role, and timestamp
+
+### Reports & Export
+- 11 report types (daily, weekly, monthly, location, inspector, category, etc.)
+- CSV export for inspections, locations, and users
+- Date range and multi-filter support
 
 ---
 
 ## Branding
 
-This project uses NemChem's corporate identity:
-
-- **Primary colour:** Navy blue (`#1B2A6B`) — matching the NemChem wordmark
-- **Secondary colour:** Royal blue (`#2A3BB0`) — matching the logo swoosh accent
-- **Background:** White
-- **Logo:** NemChem Moçambique
+This system uses NemChem Moçambique's corporate identity:
+- **Logo:** `assets/nemchem_logo.png`
+- **Colours:** Navy blue (`#1B2A6B`) and royal blue (`#2A3BB0`)
+- Same visual language as the FIMS platform for company-wide consistency
 
 ---
 
-## Demo Data
+## Project Structure
 
-The seed script (`prisma/seed.ts`) populates the database with realistic demo data:
-
-- 5 system users (1 admin, 1 manager, 3 technicians)
-- 10 customers (hotels, restaurants, hospitals, offices, shopping centres)
-- 11 contracts (Rental & FOL)
-- 42 equipment items across 6 categories
-- 59 technical visits
-- 20 inspections
-- 12 consumable products
-- Battery replacements, stock movements, and consumption records
+```
+├── prisma/
+│   ├── schema.prisma          # 17 models (users, locations, inspections, CAPA, etc.)
+│   └── seed.ts                # Demo data (7 users, 6 locations, 25 inspections)
+├── src/
+│   ├── app/
+│   │   ├── page.tsx           # Single-page app entry
+│   │   └── api/               # 21 REST endpoints with RBAC
+│   ├── components/
+│   │   ├── app-shell.tsx      # Role-filtered sidebar navigation
+│   │   ├── modules/           # 18 feature modules + 4 dashboards
+│   │   ├── login-button.tsx   # NextAuth login dialog
+│   │   └── roles-permissions.tsx  # Permission matrix viewer
+│   ├── lib/
+│   │   ├── auth.ts            # NextAuth config (4 roles)
+│   │   ├── auth-guard.ts      # requireAuth, requireRole, audit()
+│   │   ├── permissions.ts     # 60+ capabilities × 4 roles matrix
+│   │   ├── password.ts        # scrypt hashing
+│   │   └── types.ts           # TypeScript interfaces
+│   └── hooks/
+│       ├── use-api.ts         # React Query data hooks
+│       └── use-permissions.ts # Client-side capability checker
+├── assets/
+│   └── nemchem_logo.png
+└── package.json
+```
 
 ---
 
-## Decision Requested
+## Available Scripts
 
-> Validate the proposed functional direction and authorise the discovery and detailed-specification stage.
+| Script | Description |
+|--------|-------------|
+| `bun run dev` | Start dev server (port 3000) |
+| `bun run lint` | Run ESLint |
+| `bun run db:push` | Push schema to database |
+| `bun run db:generate` | Generate Prisma client |
+| `bun prisma/seed.ts` | Seed demo data |
 
 ---
 
 ## Classification
 
-**Confidential — Internal Decision Document**
-
-Prepared for: **Sérgio Zucca**, Chief Executive Officer, NemChem Moçambique
+**Confidential — NemChem Moçambique Internal System**
 
 ---
 

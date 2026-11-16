@@ -3,20 +3,10 @@
 import { useState, type ReactNode } from "react"
 import { useTheme } from "next-themes"
 import {
-  LayoutDashboard,
-  Bell,
-  Users,
-  FileText,
-  Boxes,
-  CalendarDays,
-  ClipboardCheck,
-  BatteryCharging,
-  Package,
-  ShieldCheck,
-  Menu,
-  X,
-  Sun,
-  Moon,
+  LayoutDashboard, ClipboardCheck, CalendarDays, BarChart3, Bell,
+  Mail, MapPin, Users2, Activity, AlertTriangle, ShieldCheck, Wrench,
+  Users, MapPinned, FileSpreadsheet, Settings2, ScrollText, Cog,
+  Menu, X, Sun, Moon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useNav } from "@/lib/nav-store"
@@ -28,14 +18,23 @@ import { usePermissions } from "@/hooks/use-permissions"
 
 const NAV_ITEMS: { key: ViewKey; label: string; icon: typeof LayoutDashboard; group: string }[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, group: "Overview" },
-  { key: "alerts", label: "Alerts Center", icon: Bell, group: "Overview" },
-  { key: "customers", label: "Customers", icon: Users, group: "Operations" },
-  { key: "contracts", label: "Contracts", icon: FileText, group: "Operations" },
-  { key: "equipment", label: "Equipment", icon: Boxes, group: "Operations" },
-  { key: "visits", label: "Visits & Schedule", icon: CalendarDays, group: "Field Ops" },
-  { key: "inspections", label: "Inspections", icon: ClipboardCheck, group: "Field Ops" },
-  { key: "batteries", label: "Batteries", icon: BatteryCharging, group: "Field Ops" },
-  { key: "consumables", label: "Consumables & Stock", icon: Package, group: "Inventory" },
+  { key: "inspections", label: "Hygiene Inspections", icon: ClipboardCheck, group: "Core" },
+  { key: "agenda", label: "Agenda / Schedule", icon: CalendarDays, group: "Core" },
+  { key: "capa", label: "CAPA Management", icon: Wrench, group: "Core" },
+  { key: "defects", label: "Defects / Non-compliance", icon: AlertTriangle, group: "Core" },
+  { key: "alerts", label: "Hygiene Alerts", icon: Bell, group: "Core" },
+  { key: "reports", label: "Reports Center", icon: BarChart3, group: "Analytics" },
+  { key: "activity", label: "Activity Reports", icon: Activity, group: "Analytics" },
+  { key: "team", label: "Team Performance", icon: Users2, group: "Analytics" },
+  { key: "map", label: "Field Map", icon: MapPin, group: "Operations" },
+  { key: "locations", label: "Locations / Facilities", icon: MapPinned, group: "Operations" },
+  { key: "templates", label: "Inspection Templates", icon: FileSpreadsheet, group: "Admin" },
+  { key: "standards", label: "Hygiene Standards", icon: ShieldCheck, group: "Admin" },
+  { key: "users", label: "Users", icon: Users, group: "Admin" },
+  { key: "audit", label: "Audit Logs", icon: ScrollText, group: "Admin" },
+  { key: "settings", label: "Settings", icon: Cog, group: "Admin" },
+  { key: "notifications", label: "Notifications", icon: Bell, group: "Comms" },
+  { key: "messages", label: "Messages", icon: Mail, group: "Comms" },
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -44,7 +43,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { theme, setTheme } = useTheme()
   const { allowedNav } = usePermissions()
 
-  // Filter nav items to only those the current role can access
   const visibleItems = NAV_ITEMS.filter((n) => allowedNav.includes(n.key))
   const groups = Array.from(new Set(visibleItems.map((n) => n.group)))
 
@@ -55,13 +53,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-muted/30">
-      {/* Top bar (mobile) */}
       <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between border-b bg-background px-4 h-14">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="h-9 w-9">
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="font-semibold">HygieneOps</span>
+          <span className="font-semibold">HygieneMS</span>
         </div>
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
           {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -69,7 +66,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       <div className="flex flex-1">
-        {/* Sidebar */}
         <aside
           className={cn(
             "fixed lg:sticky top-0 z-50 h-screen w-64 shrink-0 border-r bg-sidebar flex flex-col transition-transform lg:translate-x-0",
@@ -82,8 +78,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-bold leading-tight">HygieneOps</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">Field Operations Suite</p>
+                <p className="font-bold leading-tight">HygieneMS</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Compliance Platform</p>
               </div>
             </div>
             <Button variant="ghost" size="icon" className="lg:hidden h-8 w-8" onClick={() => setMobileOpen(false)}>
@@ -131,10 +127,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        {/* Overlay for mobile */}
         {mobileOpen && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMobileOpen(false)} />}
 
-        {/* Main */}
         <main className="flex-1 min-w-0 flex flex-col">{children}</main>
       </div>
     </div>

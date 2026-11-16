@@ -1,251 +1,249 @@
 /**
- * Central permission matrix for the Hygiene Equipment Management System.
+ * Hygiene Management System — RBAC Permission Matrix
  *
- * Three roles are defined:
- *   ADMIN      — CEO / System Administrator (Sérgio Zucca)
- *                Full access to everything, including user management.
- *   MANAGER    — Operations Supervisor
- *                Full operational access; cannot manage users or system settings.
- *   TECHNICIAN — Field Inspector
- *                Sees only their assigned visits, inspections, and stock.
- *
- * The matrix is the single source of truth — the UI uses usePermissions()
- * to show/hide nav items and actions, and the API uses requireRole() /
- * requireTechnicianScope() to enforce the same rules server-side.
+ * Four roles with distinct capabilities:
+ *   ADMIN       — System Administrator (full access)
+ *   CEO         — Executive Oversight (company-wide visibility, no config)
+ *   SUPERVISOR  — Operational Management (inspection operations)
+ *   INSPECTOR   — Field Operations (own inspections only)
  */
 
-export type Role = "ADMIN" | "MANAGER" | "TECHNICIAN"
+export type Role = "ADMIN" | "CEO" | "SUPERVISOR" | "INSPECTOR"
 
 export type Capability =
   // Dashboard
   | "dashboard:view"
-  // Alerts
-  | "alerts:view"
-  // Customers
-  | "customers:view" | "customers:create" | "customers:edit" | "customers:delete"
-  // Contracts
-  | "contracts:view" | "contracts:create" | "contracts:edit" | "contracts:delete"
-  | "contracts:profitability"
-  // Equipment
-  | "equipment:view" | "equipment:create" | "equipment:edit" | "equipment:delete"
-  | "equipment:qr"
-  // Visits
-  | "visits:view" | "visits:create" | "visits:edit" | "visits:delete" | "visits:assign"
   // Inspections
-  | "inspections:view" | "inspections:submit" | "inspections:correct"
-  // Batteries
-  | "batteries:view" | "batteries:replace"
-  // Consumables & Stock
-  | "consumables:view" | "consumables:manage"
-  | "stock:entry" | "stock:exit" | "stock:adjust" | "stock:allocate"
-  // Cross-cutting
-  | "audit:view" | "export:any" | "users:manage" | "settings:manage"
-  | "categories:manage" | "roles:view"
+  | "inspections:view" | "inspections:create" | "inspections:assign"
+  | "inspections:accept" | "inspections:decline" | "inspections:start"
+  | "inspections:complete" | "inspections:saveDraft" | "inspections:submit"
+  | "inspections:approve" | "inspections:return" | "inspections:close"
+  | "inspections:reopen" | "inspections:delete" | "inspections:reschedule"
+  // Templates
+  | "templates:view" | "templates:manage"
+  // Categories & Standards
+  | "categories:view" | "categories:manage" | "standards:manage"
+  // CAPA
+  | "capa:view" | "capa:close" | "capa:cancel" | "capa:addEvidence"
+  // Defects
+  | "defects:view"
+  // Alerts
+  | "alerts:view" | "alerts:resolve"
+  // Locations
+  | "locations:view" | "locations:manage"
+  // Reports
+  | "reports:view" | "reports:export" | "reports:exportExecutive"
+  // Users
+  | "users:view" | "users:manage"
+  // Messages & Notifications
+  | "messages:view" | "messages:send" | "announcements:broadcast"
+  // Audit
+  | "audit:view"
+  // Settings
+  | "settings:manage"
+  // Team Performance
+  | "team:view"
+  // Field Map
+  | "map:view"
+  // Roles reference
+  | "roles:view"
 
-/**
- * The full permission matrix. Each capability is explicitly listed per role
- * — no implicit inheritance. This makes audits trivial.
- */
 export const PERMISSIONS: Record<Role, Capability[]> = {
   ADMIN: [
     "dashboard:view",
-    "alerts:view",
-    "customers:view", "customers:create", "customers:edit", "customers:delete",
-    "contracts:view", "contracts:create", "contracts:edit", "contracts:delete", "contracts:profitability",
-    "equipment:view", "equipment:create", "equipment:edit", "equipment:delete", "equipment:qr",
-    "visits:view", "visits:create", "visits:edit", "visits:delete", "visits:assign",
-    "inspections:view", "inspections:submit", "inspections:correct",
-    "batteries:view", "batteries:replace",
-    "consumables:view", "consumables:manage",
-    "stock:entry", "stock:exit", "stock:adjust", "stock:allocate",
-    "audit:view", "export:any", "users:manage", "settings:manage", "categories:manage", "roles:view",
+    "inspections:view", "inspections:create", "inspections:assign", "inspections:accept",
+    "inspections:decline", "inspections:start", "inspections:complete", "inspections:saveDraft",
+    "inspections:submit", "inspections:approve", "inspections:return", "inspections:close",
+    "inspections:reopen", "inspections:delete", "inspections:reschedule",
+    "templates:view", "templates:manage",
+    "categories:view", "categories:manage", "standards:manage",
+    "capa:view", "capa:close", "capa:cancel", "capa:addEvidence",
+    "defects:view",
+    "alerts:view", "alerts:resolve",
+    "locations:view", "locations:manage",
+    "reports:view", "reports:export", "reports:exportExecutive",
+    "users:view", "users:manage",
+    "messages:view", "messages:send", "announcements:broadcast",
+    "audit:view", "settings:manage", "team:view", "map:view", "roles:view",
   ],
-  MANAGER: [
+  CEO: [
     "dashboard:view",
+    "inspections:view", "inspections:approve", "inspections:return", "inspections:close",
+    "templates:view", "categories:view",
+    "capa:view", "capa:close",
+    "defects:view",
     "alerts:view",
-    "customers:view", "customers:create", "customers:edit", "customers:delete",
-    "contracts:view", "contracts:create", "contracts:edit", "contracts:delete", "contracts:profitability",
-    "equipment:view", "equipment:create", "equipment:edit", "equipment:delete", "equipment:qr",
-    "visits:view", "visits:create", "visits:edit", "visits:delete", "visits:assign",
-    "inspections:view", "inspections:submit", "inspections:correct",
-    "batteries:view", "batteries:replace",
-    "consumables:view", "consumables:manage",
-    "stock:entry", "stock:exit", "stock:adjust", "stock:allocate",
-    "audit:view", "export:any", "categories:manage", "roles:view",
-    // Manager CANNOT: users:manage, settings:manage
+    "locations:view",
+    "reports:view", "reports:export", "reports:exportExecutive",
+    "users:view",
+    "messages:view", "messages:send", "announcements:broadcast",
+    "audit:view", "roles:view",
   ],
-  TECHNICIAN: [
-    // Technician sees a focused dashboard with their tasks
+  SUPERVISOR: [
     "dashboard:view",
-    "alerts:view", // sees alerts related to their visits
-    // Customers: read-only, only those they have visits for
-    "customers:view",
-    // Contracts: read-only
-    "contracts:view",
-    // Equipment: view only (cannot create/edit/delete)
-    "equipment:view", "equipment:qr",
-    // Visits: view their assigned visits only, cannot create/schedule
-    "visits:view",
-    // Inspections: submit (their own), cannot correct
-    "inspections:view", "inspections:submit",
-    // Batteries: view + replace during their visits
-    "batteries:view", "batteries:replace",
-    // Consumables: view stock levels + their own allocation
-    "consumables:view",
-    // No stock management, no audit, no export, no user/settings management
+    "inspections:view", "inspections:create", "inspections:assign", "inspections:accept",
+    "inspections:decline", "inspections:start", "inspections:complete", "inspections:saveDraft",
+    "inspections:submit", "inspections:approve", "inspections:return", "inspections:close",
+    "inspections:delete", "inspections:reschedule",
+    "templates:view", "categories:view",
+    "capa:view", "capa:close", "capa:addEvidence",
+    "defects:view",
+    "alerts:view", "alerts:resolve",
+    "locations:view", "locations:manage",
+    "reports:view", "reports:export",
+    "users:view",
+    "messages:view", "messages:send", "announcements:broadcast",
+    "audit:view", "team:view", "map:view",
+  ],
+  INSPECTOR: [
+    "dashboard:view",
+    "inspections:view", "inspections:create", "inspections:accept", "inspections:decline",
+    "inspections:start", "inspections:complete", "inspections:saveDraft", "inspections:submit",
+    "inspections:delete",
+    "capa:view", "capa:addEvidence",
+    "messages:view", "messages:send",
   ],
 }
 
 /**
- * Nav items visible per role. The app shell uses this to filter the sidebar.
+ * Nav items visible per role.
  */
 export const NAV_ACCESS: Record<Role, string[]> = {
   ADMIN: [
-    "dashboard", "alerts", "customers", "contracts", "equipment",
-    "visits", "inspections", "batteries", "consumables",
+    "dashboard", "inspections", "agenda", "reports", "notifications", "messages",
+    "map", "team", "activity", "alerts", "capa", "defects",
+    "users", "locations", "templates", "standards", "audit", "settings",
   ],
-  MANAGER: [
-    "dashboard", "alerts", "customers", "contracts", "equipment",
-    "visits", "inspections", "batteries", "consumables",
+  CEO: [
+    "dashboard", "inspections", "reports", "notifications", "messages",
+    "activity", "alerts", "capa", "audit",
   ],
-  TECHNICIAN: [
-    "dashboard", "alerts", "visits", "inspections", "batteries", "consumables",
-    // Technicians do NOT see: customers, contracts, equipment in the nav
-    // (they can view a customer/equipment if navigated from a visit, but
-    //  the nav items are hidden to keep the interface focused)
+  SUPERVISOR: [
+    "dashboard", "inspections", "agenda", "reports", "notifications", "messages",
+    "map", "team", "activity", "alerts", "capa", "defects",
+    "locations", "standards", "audit",
+  ],
+  INSPECTOR: [
+    "dashboard", "inspections", "notifications", "messages", "capa",
   ],
 }
 
-/**
- * Human-readable role descriptions for the UI.
- */
 export const ROLE_INFO: Record<Role, { label: string; description: string; color: string }> = {
   ADMIN: {
-    label: "Administrator (CEO)",
-    description: "Full system access — users, settings, all modules, audit logs, and financial data.",
+    label: "Administrator",
+    description: "Full system access — users, settings, templates, all modules, audit logs.",
     color: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
   },
-  MANAGER: {
-    label: "Operations Manager",
-    description: "Full operational access — customers, contracts, equipment, visits, stock. Cannot manage users or system settings.",
+  CEO: {
+    label: "Chief Executive Officer",
+    description: "Company-wide visibility — executive dashboards, approvals, reports, announcements.",
     color: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
   },
-  TECHNICIAN: {
-    label: "Field Technician",
-    description: "Focused on assigned visits, inspections, and personal stock. Cannot create customers, contracts, or schedule visits.",
+  SUPERVISOR: {
+    label: "Supervisor",
+    description: "Operational management — create/assign inspections, review, CAPA, team performance.",
     color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  },
+  INSPECTOR: {
+    label: "Inspector",
+    description: "Field operations — assigned inspections, checklists, photos, evidence. Mobile-first.",
+    color: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
   },
 }
 
-/**
- * Check if a role has a specific capability.
- */
 export function can(role: Role | undefined | null, capability: Capability): boolean {
   if (!role) return false
   return PERMISSIONS[role]?.includes(capability) ?? false
 }
 
-/**
- * Returns all capabilities for a role.
- */
 export function getCapabilities(role: Role | undefined | null): Capability[] {
   if (!role) return []
   return PERMISSIONS[role] ?? []
 }
 
-/**
- * Returns the nav items a role is allowed to see.
- */
 export function getAllowedNav(role: Role | undefined | null): string[] {
   if (!role) return []
   return NAV_ACCESS[role] ?? []
 }
 
-/**
- * The full capability catalog, grouped for display in the permissions matrix UI.
- */
 export const CAPABILITY_GROUPS: { group: string; capabilities: { key: Capability; label: string; description: string }[] }[] = [
   {
-    group: "Dashboard & Alerts",
+    group: "Dashboard",
     capabilities: [
-      { key: "dashboard:view", label: "View Dashboard", description: "KPIs and charts (technicians see a personal view)" },
-      { key: "alerts:view", label: "View Alerts", description: "Operational alerts and warnings" },
-    ],
-  },
-  {
-    group: "Customers",
-    capabilities: [
-      { key: "customers:view", label: "View Customers", description: "Browse customer profiles" },
-      { key: "customers:create", label: "Create Customers", description: "Add new customer accounts" },
-      { key: "customers:edit", label: "Edit Customers", description: "Modify customer information" },
-      { key: "customers:delete", label: "Delete Customers", description: "Remove customer records" },
-    ],
-  },
-  {
-    group: "Contracts",
-    capabilities: [
-      { key: "contracts:view", label: "View Contracts", description: "Browse contract details" },
-      { key: "contracts:create", label: "Create Contracts", description: "Add new Rental or FOL contracts" },
-      { key: "contracts:edit", label: "Edit Contracts", description: "Modify contract terms and status" },
-      { key: "contracts:delete", label: "Delete Contracts", description: "Remove contract records" },
-      { key: "contracts:profitability", label: "View Profitability", description: "Financial analysis: revenue vs costs" },
-    ],
-  },
-  {
-    group: "Equipment",
-    capabilities: [
-      { key: "equipment:view", label: "View Equipment", description: "Browse equipment inventory" },
-      { key: "equipment:create", label: "Create Equipment", description: "Register new equipment" },
-      { key: "equipment:edit", label: "Edit Equipment", description: "Modify equipment details and status" },
-      { key: "equipment:delete", label: "Decommission", description: "Decommission equipment" },
-      { key: "equipment:qr", label: "QR Codes", description: "Generate and download QR labels" },
-    ],
-  },
-  {
-    group: "Visits",
-    capabilities: [
-      { key: "visits:view", label: "View Visits", description: "Browse visit schedule (technicians: own only)" },
-      { key: "visits:create", label: "Schedule Visits", description: "Create new visit appointments" },
-      { key: "visits:edit", label: "Edit Visits", description: "Modify visit details and status" },
-      { key: "visits:delete", label: "Delete Visits", description: "Remove visit records" },
-      { key: "visits:assign", label: "Assign Technicians", description: "Assign technicians to visits" },
+      { key: "dashboard:view", label: "View Dashboard", description: "Role-specific dashboard with KPIs" },
     ],
   },
   {
     group: "Inspections",
     capabilities: [
-      { key: "inspections:view", label: "View Inspections", description: "Browse inspection history" },
-      { key: "inspections:submit", label: "Submit Inspections", description: "Record inspection findings on-site" },
-      { key: "inspections:correct", label: "Correct Inspections", description: " Amend submitted inspections (with audit trail)" },
+      { key: "inspections:view", label: "View Inspections", description: "Inspectors see own only; others see all" },
+      { key: "inspections:create", label: "Create Inspections", description: "Create new hygiene inspections" },
+      { key: "inspections:assign", label: "Assign Inspector", description: "Assign inspections to inspectors" },
+      { key: "inspections:accept", label: "Accept Task", description: "Accept an assigned inspection" },
+      { key: "inspections:decline", label: "Decline Task", description: "Decline with reason" },
+      { key: "inspections:start", label: "Start Inspection", description: "Begin the inspection checklist" },
+      { key: "inspections:complete", label: "Complete Checklist", description: "Fill in scores and observations" },
+      { key: "inspections:saveDraft", label: "Save Draft", description: "Save partial inspection" },
+      { key: "inspections:submit", label: "Submit for Review", description: "Submit completed inspection" },
+      { key: "inspections:approve", label: "Approve", description: "Approve a submitted inspection" },
+      { key: "inspections:return", label: "Return for Corrections", description: "Return with review comments" },
+      { key: "inspections:close", label: "Close Inspection", description: "Final closure after approval" },
+      { key: "inspections:reopen", label: "Reopen Closed", description: "Admin only — reopen a closed inspection" },
+      { key: "inspections:delete", label: "Delete", description: "Delete pending inspections (own for inspectors)" },
+      { key: "inspections:reschedule", label: "Reschedule", description: "Change the scheduled date" },
     ],
   },
   {
-    group: "Batteries",
+    group: "Templates & Standards",
     capabilities: [
-      { key: "batteries:view", label: "View Batteries", description: "Monitor battery levels and history" },
-      { key: "batteries:replace", label: "Record Replacements", description: "Log battery replacement operations" },
+      { key: "templates:view", label: "View Templates", description: "Browse inspection templates" },
+      { key: "templates:manage", label: "Manage Templates", description: "Create/edit templates and checklist items" },
+      { key: "categories:view", label: "View Categories", description: "Browse hygiene categories" },
+      { key: "categories:manage", label: "Manage Categories", description: "Create/edit hygiene categories" },
+      { key: "standards:manage", label: "Manage Standards", description: "Configure compliance thresholds" },
     ],
   },
   {
-    group: "Consumables & Stock",
+    group: "CAPA & Defects",
     capabilities: [
-      { key: "consumables:view", label: "View Stock", description: "Browse product inventory" },
-      { key: "consumables:manage", label: "Manage Products", description: "Create/edit products and categories" },
-      { key: "stock:entry", label: "Stock Entry", description: "Register incoming stock" },
-      { key: "stock:exit", label: "Stock Exit", description: "Register outgoing stock" },
-      { key: "stock:adjust", label: "Stock Adjustment", description: "Reconcile stock levels" },
-      { key: "stock:allocate", label: "Allocate to Technician", description: "Assign stock to technicians" },
+      { key: "capa:view", label: "View CAPAs", description: "Inspectors see assigned only" },
+      { key: "capa:close", label: "Close CAPA", description: "Mark a CAPA as closed" },
+      { key: "capa:cancel", label: "Cancel CAPA", description: "Cancel a CAPA (admin only)" },
+      { key: "capa:addEvidence", label: "Add Evidence", description: "Upload corrective evidence" },
+      { key: "defects:view", label: "View Defects", description: "Non-compliance management" },
+    ],
+  },
+  {
+    group: "Alerts & Locations",
+    capabilities: [
+      { key: "alerts:view", label: "View Alerts", description: "Hygiene alerts and warnings" },
+      { key: "alerts:resolve", label: "Resolve Alerts", description: "Mark alerts as resolved" },
+      { key: "locations:view", label: "View Locations", description: "Browse facilities" },
+      { key: "locations:manage", label: "Manage Locations", description: "Create/edit facilities" },
+      { key: "map:view", label: "Field Map", description: "Geographic view of inspections" },
+    ],
+  },
+  {
+    group: "Reports & Analytics",
+    capabilities: [
+      { key: "reports:view", label: "View Reports", description: "Reports Center access" },
+      { key: "reports:export", label: "Export Reports", description: "PDF/Excel exports" },
+      { key: "reports:exportExecutive", label: "Executive Exports", description: "Boardroom-level company reports" },
+      { key: "team:view", label: "Team Performance", description: "Inspector KPIs and leaderboard" },
+      { key: "activity:view", label: "Activity Reports", description: "System activity tracking" },
     ],
   },
   {
     group: "Administration",
     capabilities: [
-      { key: "audit:view", label: "View Audit Log", description: "Append-only event history" },
-      { key: "export:any", label: "Export Data", description: "Download CSV exports" },
-      { key: "users:manage", label: "Manage Users", description: "Create/edit/disable user accounts" },
-      { key: "settings:manage", label: "System Settings", description: "Configure thresholds and parameters" },
-      { key: "categories:manage", label: "Manage Categories", description: "Create equipment/consumable categories" },
-      { key: "roles:view", label: "View Roles & Permissions", description: "Access the permission matrix" },
+      { key: "users:view", label: "View Users", description: "Browse user accounts" },
+      { key: "users:manage", label: "Manage Users", description: "Create/edit/disable users and roles" },
+      { key: "messages:view", label: "View Messages", description: "Direct messaging" },
+      { key: "messages:send", label: "Send Messages", description: "Send direct messages" },
+      { key: "announcements:broadcast", label: "Broadcast", description: "Company-wide announcements" },
+      { key: "audit:view", label: "View Audit Logs", description: "Append-only event history" },
+      { key: "settings:manage", label: "System Settings", description: "Configure system parameters" },
+      { key: "roles:view", label: "View Roles Matrix", description: "Permission reference" },
     ],
   },
 ]

@@ -12,7 +12,9 @@ export function ExportButton({
   label = "Export CSV",
   filename,
 }: {
-  type: "customers" | "equipment" | "visits" | "consumption" | "products"
+  type:
+    | "customers" | "equipment" | "visits" | "consumption" | "products"
+    | "inspections" | "locations" | "users"
   label?: string
   filename?: string
 }) {

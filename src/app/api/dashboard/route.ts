@@ -1,149 +1,178 @@
 import { db } from "@/lib/db"
 import { ok } from "@/lib/api"
+import { requireAuthOrDemo } from "@/lib/auth-guard"
+import type { DashboardData } from "@/lib/types"
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const customerId = searchParams.get("customerId") || undefined
-  const contractId = searchParams.get("contractId") || undefined
-  const fromStr = searchParams.get("from")
-  const toStr = searchParams.get("to")
-
-  const from = fromStr ? new Date(fromStr) : undefined
-  const to = toStr ? new Date(toStr) : undefined
+/**
+ * GET /api/dashboard
+ * Returns aggregated KPIs + chart data in the DashboardData shape:
+ *   { kpis: { total, completed, pending, awaitingReview, inProgress, overdue,
+ *             avgCompliance, criticalViolations, openCapas, overdueCapas },
+ *     complianceTrend: [{month, compliance}],
+ *     locationPerformance: [{name, compliance, inspections}],
+ *     categoryPerformance: [{name, avgScore, violations}],
+ *     inspectorLeaderboard: [{name, completed, avgScore}],
+ *     recentActivity: [{id, action, entity, user, time}],
+ *     statusBreakdown: [{status, count}] }
+ *
+ * INSPECTOR role sees only their own stats; everyone else sees company-wide stats.
+ */
+export async function GET() {
+  const user = await requireAuthOrDemo()
+  const scoped = user.role === "INSPECTOR" ? { inspectorId: user.id } : {}
 
   const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
+  const activeStatuses = ["PENDING", "ASSIGNED", "ACCEPTED", "IN_PROGRESS", "SUBMITTED", "UNDER_REVIEW", "RETURNED"]
 
-  const custFilter = customerId ? { customerId } : {}
-  const contractFilter = contractId ? { contractId } : {}
-  const dateFilter: { gte?: Date; lte?: Date } = {}
-  if (from) dateFilter.gte = from
-  if (to) dateFilter.lte = to
+  const [
+    totalInspections,
+    completed,
+    pending,
+    awaitingReview,
+    inProgress,
+    overdue,
+    criticalDefects,
+    openCapas,
+    overdueCapas,
+    complianceAgg,
+  ] = await Promise.all([
+    db.inspection.count({ where: scoped }),
+    db.inspection.count({ where: { ...scoped, status: "CLOSED" } }),
+    db.inspection.count({ where: { ...scoped, status: "PENDING" } }),
+    db.inspection.count({ where: { ...scoped, status: { in: ["SUBMITTED", "UNDER_REVIEW"] } } }),
+    db.inspection.count({ where: { ...scoped, status: "IN_PROGRESS" } }),
+    db.inspection.count({
+      where: { ...scoped, status: { in: activeStatuses }, scheduledDate: { lt: now } },
+    }),
+    db.defect.count({ where: { severity: "CRITICAL", status: { not: "RESOLVED" } } }),
+    db.cAPA.count({
+      where: { status: { notIn: ["CLOSED", "CANCELLED"] }, ...(user.role === "INSPECTOR" ? { assignedToId: user.id } : {}) },
+    }),
+    db.cAPA.count({
+      where: {
+        status: { notIn: ["CLOSED", "CANCELLED"] },
+        targetDate: { lt: now },
+        ...(user.role === "INSPECTOR" ? { assignedToId: user.id } : {}),
+      },
+    }),
+    db.inspection.aggregate({
+      _avg: { compliancePercent: true },
+      where: { ...scoped, compliancePercent: { not: null } },
+    }),
+  ])
 
-  const totalCustomers = await db.customer.count()
-  const activeCustomers = await db.customer.count({ where: { status: "ACTIVE" } })
-
-  const contracts = await db.contract.findMany({ where: { ...contractFilter } })
-  const totalActiveContracts = contracts.filter(c => c.status === "ACTIVE").length
-  const rentalContracts = contracts.filter(c => c.type === "RENTAL" && c.status === "ACTIVE").length
-  const folContracts = contracts.filter(c => c.type === "FOL" && c.status === "ACTIVE").length
-  const expiredContracts = contracts.filter(c => c.status === "EXPIRED" || (c.endDate < now && c.status === "ACTIVE")).length
-  const expiryWarningDays = 30
-  const approachingExpiration = contracts.filter(c => {
-    const diff = (c.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    return c.status === "ACTIVE" && diff > 0 && diff <= expiryWarningDays
-  }).length
-
-  const allEquipment = await db.equipment.findMany({ where: customerId ? { customerId } : {} })
-  const totalEquipment = allEquipment.length
-  const installedEquipment = allEquipment.filter(e => e.installationDate !== null).length
-  const operational = allEquipment.filter(e => e.operationalStatus === "OPERATIONAL").length
-  const nonOperational = allEquipment.filter(e => e.operationalStatus === "NOT_OPERATIONAL").length
-  const damaged = allEquipment.filter(e => e.operationalStatus === "DAMAGED").length
-  const underMaintenance = allEquipment.filter(e => e.operationalStatus === "UNDER_MAINTENANCE").length
-  const needsReplacement = allEquipment.filter(e => e.operationalStatus === "NEEDS_REPLACEMENT").length
-
-  const monthVisitFilter = { ...custFilter, ...contractFilter, scheduledDate: { gte: monthStart, lte: monthEnd } }
-  const totalVisitsMonth = await db.visit.count({ where: monthVisitFilter })
-  const completedVisits = await db.visit.count({ where: { ...monthVisitFilter, status: "COMPLETED" } })
-  const scheduledVisits = await db.visit.count({ where: { ...monthVisitFilter, status: "SCHEDULED" } })
-  const pendingVisits = await db.visit.count({ where: { ...monthVisitFilter, status: "PENDING" } })
-  const overdueVisits = await db.visit.count({ where: { ...monthVisitFilter, status: "OVERDUE" } })
-  const upcomingVisits = await db.visit.count({ where: { ...custFilter, ...contractFilter, scheduledDate: { gte: now }, status: { in: ["SCHEDULED", "PENDING"] } } })
-
-  const batteryCats = await db.equipmentCategory.findMany({ where: { usesBatteries: true } })
-  const batteryCatIds = new Set(batteryCats.map(c => c.id))
-  const batteryEquipment = allEquipment.filter(e => batteryCatIds.has(e.categoryId))
-  const healthyBatteries = batteryEquipment.filter(e => ["FULL", "SEVENTY_FIVE"].includes(e.currentBatteryLevel)).length
-  const lowBatteries = batteryEquipment.filter(e => ["FIFTY", "TWENTY_FIVE"].includes(e.currentBatteryLevel)).length
-  const needReplacement = batteryEquipment.filter(e => e.currentBatteryLevel === "EMPTY").length
-  const batteryReplacementsMonth = await db.batteryReplacement.count({ where: { replacementDate: { gte: monthStart, lte: monthEnd } } })
-
-  const products = await db.product.findMany()
-  const totalStock = products.reduce((s, p) => s + p.currentStock, 0)
-  const lowStock = products.filter(p => p.currentStock > 0 && p.currentStock <= p.minimumStock).length
-  const outOfStock = products.filter(p => p.currentStock === 0).length
-
-  const rates = await db.equipmentConsumptionRate.findMany()
-  const ratesByCat = new Map(rates.map(r => [r.categoryId, r.averageConsumptionPerMonth]))
-  const installedByCat = new Map<string, number>()
-  for (const e of allEquipment) {
-    if (e.installationDate) installedByCat.set(e.categoryId, (installedByCat.get(e.categoryId) ?? 0) + 1)
-  }
-  let estimatedMonthly = 0
-  for (const [catId, count] of installedByCat) {
-    estimatedMonthly += count * (ratesByCat.get(catId) ?? 0)
-  }
-
-  const consumptionRecords = await db.consumptionRecord.findMany({ where: { date: { gte: monthStart, lte: monthEnd } } })
-  const actualMonthly = consumptionRecords.reduce((s, r) => s + r.quantity, 0)
-
-  const monthlyVisits = []
+  // Compliance trend — last 6 months
+  const complianceTrend: { month: string; compliance: number }[] = []
   for (let i = 5; i >= 0; i--) {
     const ms = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const me = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59)
-    const count = await db.visit.count({ where: { ...custFilter, ...contractFilter, scheduledDate: { gte: ms, lte: me } } })
-    monthlyVisits.push({ month: ms.toLocaleString("default", { month: "short" }), visits: count })
+    const agg = await db.inspection.aggregate({
+      _avg: { compliancePercent: true },
+      where: { ...scoped, completedDate: { gte: ms, lte: me }, compliancePercent: { not: null } },
+    })
+    complianceTrend.push({
+      month: ms.toLocaleString("default", { month: "short" }),
+      compliance: Math.round(agg._avg.compliancePercent ?? 0),
+    })
   }
 
-  const statusCounts: Record<string, number> = {}
-  for (const e of allEquipment) statusCounts[e.operationalStatus] = (statusCounts[e.operationalStatus] ?? 0) + 1
-  const equipmentStatusDist = Object.entries(statusCounts).map(([name, value]) => ({ name, value }))
-
-  const activeContracts = contracts.filter(c => c.status === "ACTIVE")
-  const contractTypeDist = [
-    { name: "Rental", value: activeContracts.filter(c => c.type === "RENTAL").length },
-    { name: "FOL", value: activeContracts.filter(c => c.type === "FOL").length },
-  ]
-
-  const monthlyConsumption = []
-  for (let i = 5; i >= 0; i--) {
-    const ms = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const me = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59)
-    const recs = await db.consumptionRecord.findMany({ where: { date: { gte: ms, lte: me } } })
-    monthlyConsumption.push({ month: ms.toLocaleString("default", { month: "short" }), consumption: recs.reduce((s, r) => s + r.quantity, 0) })
-  }
-
-  const equipByCustomer = await db.equipment.groupBy({ by: ["customerId"], _count: true })
-  const customersForChart = await db.customer.findMany({ where: { id: { in: equipByCustomer.map(e => e.customerId) } } })
-  const equipByCustomerChart = equipByCustomer.map(e => ({
-    name: customersForChart.find(c => c.id === e.customerId)?.name ?? "Unknown",
-    value: e._count,
-  })).sort((a, b) => b.value - a.value).slice(0, 6)
-
-  const batteryReplacementsChart = []
-  for (let i = 5; i >= 0; i--) {
-    const ms = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const me = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59)
-    const count = await db.batteryReplacement.count({ where: { replacementDate: { gte: ms, lte: me } } })
-    batteryReplacementsChart.push({ month: ms.toLocaleString("default", { month: "short" }), replacements: count })
-  }
-
-  const maintenanceOverview = [
-    { name: "Operational", value: operational },
-    { name: "Under Maintenance", value: underMaintenance },
-    { name: "Needs Replacement", value: needsReplacement },
-    { name: "Damaged", value: damaged },
-  ]
-
-  return ok({
-    kpis: {
-      customers: { totalCustomers, activeCustomers },
-      contracts: { totalActiveContracts, rentalContracts, folContracts, expiredContracts, approachingExpiration },
-      equipment: { totalEquipment, installedEquipment, operational, nonOperational, damaged, underMaintenance, needsReplacement },
-      visits: { totalVisitsMonth, completedVisits, scheduledVisits, pendingVisits, overdueVisits, upcomingVisits },
-      batteries: { healthyBatteries, lowBatteries, needReplacement, batteryReplacementsMonth },
-      consumables: { totalStock, estimatedMonthly: Math.round(estimatedMonthly * 10) / 10, actualMonthly, lowStock, outOfStock },
+  // Location performance — top 8 by inspection count
+  const locationPerfRaw = await db.location.findMany({
+    where: user.role === "INSPECTOR" ? { inspections: { some: { inspectorId: user.id } } } : {},
+    include: {
+      _count: { select: { inspections: true } },
+      inspections: { where: { compliancePercent: { not: null } }, select: { compliancePercent: true } },
     },
-    charts: {
-      monthlyVisits,
-      equipmentStatusDist,
-      contractTypeDist,
-      monthlyConsumption,
-      equipByCustomerChart,
-      batteryReplacementsChart,
-      maintenanceOverview,
-    },
+    take: 8,
   })
+  const locationPerformance = locationPerfRaw
+    .map((l) => ({
+      name: l.name,
+      inspections: l._count.inspections,
+      compliance: l.inspections.length
+        ? Math.round(l.inspections.reduce((s, i) => s + (i.compliancePercent ?? 0), 0) / l.inspections.length)
+        : 0,
+    }))
+    .sort((a, b) => b.compliance - a.compliance)
+
+  // Category performance — avg score (compliance %) and violations (non-compliant responses)
+  const categories = await db.hygieneCategory.findMany({
+    include: {
+      items: { include: { responses: { where: { response: { not: null } } } } },
+    },
+    orderBy: { sortOrder: "asc" },
+  })
+  const categoryPerformance = categories.map((c) => {
+    const all = c.items.flatMap((i) => i.responses)
+    const compliant = all.filter((r) => r.response === "COMPLIANT").length
+    const violations = all.filter((r) => r.response === "NON_COMPLIANT").length
+    const avgScore = all.length ? Math.round((compliant / all.length) * 100) : 0
+    return { name: c.name, avgScore, violations }
+  })
+
+  // Inspector leaderboard — top 10 by avg score then completed count
+  const inspectorWhere = user.role === "INSPECTOR" ? { id: user.id } : {}
+  const inspectors = await db.user.findMany({
+    where: { role: "INSPECTOR", ...inspectorWhere },
+    include: {
+      inspectionsAssigned: {
+        where: { status: { in: ["CLOSED", "APPROVED"] } },
+        select: { compliancePercent: true },
+      },
+      _count: { select: { inspectionsAssigned: true } },
+    },
+    take: 10,
+  })
+  const inspectorLeaderboard = inspectors
+    .map((i) => ({
+      name: i.name,
+      completed: i.inspectionsAssigned.length,
+      avgScore: i.inspectionsAssigned.length
+        ? Math.round(i.inspectionsAssigned.reduce((s, x) => s + (x.compliancePercent ?? 0), 0) / i.inspectionsAssigned.length)
+        : 0,
+    }))
+    .sort((a, b) => b.avgScore - a.avgScore || b.completed - a.completed)
+
+  // Status breakdown
+  const statusGroups = await db.inspection.groupBy({ by: ["status"], where: scoped, _count: true })
+  const statusBreakdown = statusGroups.map((s) => ({ status: s.status, count: s._count }))
+
+  // Recent activity — latest audit log entries
+  const auditWhere = user.role === "INSPECTOR" ? { userId: user.id } : {}
+  const recentLogs = await db.auditLog.findMany({
+    where: auditWhere,
+    include: { user: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 12,
+  })
+  const recentActivity = recentLogs.map((l) => ({
+    id: l.id,
+    action: l.action,
+    entity: l.entityType,
+    user: l.user?.name ?? "System",
+    time: l.createdAt.toISOString(),
+  }))
+
+  const payload: DashboardData = {
+    kpis: {
+      total: totalInspections,
+      completed,
+      pending,
+      awaitingReview,
+      inProgress,
+      overdue,
+      avgCompliance: Math.round(complianceAgg._avg.compliancePercent ?? 0),
+      criticalViolations: criticalDefects,
+      openCapas,
+      overdueCapas,
+    },
+    complianceTrend,
+    locationPerformance,
+    categoryPerformance,
+    inspectorLeaderboard,
+    recentActivity,
+    statusBreakdown,
+  }
+
+  return ok(payload)
 }
