@@ -120,3 +120,37 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ============================================================
+   Landing page — client marquee (subtle, pauses on hover,
+   static under reduced-motion)
+   ============================================================ */
+@keyframes landing-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-50% - 0.4375rem));
+  }
+}
+
+.landing-marquee-inner {
+  animation: landing-marquee 70s linear infinite;
+}
+
+.landing-marquee:hover .landing-marquee-inner,
+.landing-marquee:focus-within .landing-marquee-inner {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-marquee-inner {
+    animation: none;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .landing-marquee {
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+  }
+}

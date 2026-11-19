@@ -16,8 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HygieneOps — Equipment & Field Operations",
-  description: "Hygiene Equipment Management, Inventory and Field Operations System",
+  title: "NemChem — Sistema de Gestão de Equipamentos de Higiene",
+  description:
+    "Plataforma centralizada para acompanhar equipamentos, gerir inspecções, monitorizar intervenções e garantir maior controlo sobre as operações de higiene.",
 };
 
 export default function RootLayout({
