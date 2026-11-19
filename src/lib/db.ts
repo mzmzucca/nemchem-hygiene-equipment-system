@@ -9,6 +9,12 @@ const globalForPrisma = globalThis as unknown as {
 // Always create a fresh client in dev mode to guarantee access to all models.
 const dbClient = new PrismaClient({
   log: process.env.NODE_ENV !== 'production' ? ['query', 'warn', 'error'] : ['error'],
+  // Fallback for environments where DATABASE_URL is not set (e.g. Netlify
+  // runtime). Prisma resolves the relative path against prisma/schema.prisma,
+  // which is bundled together with the seeded database (see netlify.toml).
+  datasources: {
+    db: { url: process.env.DATABASE_URL ?? 'file:./db/custom.db' },
+  },
 })
 
 export const db = dbClient

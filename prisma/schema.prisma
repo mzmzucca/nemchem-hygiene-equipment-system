@@ -1,6 +1,9 @@
 // Hygiene Management System — Complete RBAC Inspection Platform
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // rhel-openssl-3.0.x: the Amazon Linux runtime used by Netlify functions
+  // (build image differs from runtime, so ship both engines).
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
