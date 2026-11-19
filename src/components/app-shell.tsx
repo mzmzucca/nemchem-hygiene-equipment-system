@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="h-9 w-9">
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="font-semibold">HygieneMS</span>
+          <span className="font-semibold">NemChem</span>
         </div>
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
           {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -78,8 +78,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-bold leading-tight">HygieneMS</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">Compliance Platform</p>
+                <p className="font-bold leading-tight">NemChem</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Gestão de Higiene</p>
               </div>
             </div>
             <Button variant="ghost" size="icon" className="lg:hidden h-8 w-8" onClick={() => setMobileOpen(false)}>
