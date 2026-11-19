@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useCallback, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from "react"
 import { landingDictionaries, type LandingKey, type LandingLang } from "@/lib/i18n/landing-dictionaries"
 
 /**
@@ -73,6 +73,12 @@ const LandingI18nContext = createContext<LandingI18nValue | null>(null)
 export function LandingI18nProvider({ children }: { children: ReactNode }) {
   const lang = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
   const setLang = useCallback((next: LandingLang) => persistLang(next), [])
+
+  // Keep <html lang> in sync with the landing language for a11y/SEO.
+  // DOM write only — safe inside an effect (no setState).
+  useEffect(() => {
+    document.documentElement.lang = lang
+  }, [lang])
 
   const t = useCallback(
     (key: LandingKey) => {
