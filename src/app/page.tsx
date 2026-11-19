@@ -1,55 +1,72 @@
 "use client"
 
-import { AppShell } from "@/components/app-shell"
-import { useNav } from "@/lib/nav-store"
-import { DashboardModule } from "@/components/modules/dashboard"
-import { InspectionsModule } from "@/components/modules/inspections"
-import { CapaModule } from "@/components/modules/capa"
-import { DefectsModule } from "@/components/modules/defects"
-import { AlertsModule } from "@/components/modules/alerts"
-import { LocationsModule } from "@/components/modules/locations"
-import { TemplatesModule } from "@/components/modules/templates"
-import { UsersModule } from "@/components/modules/users"
-import { AuditModule } from "@/components/modules/audit"
-import { ReportsModule } from "@/components/modules/reports"
-import { NotificationsModule } from "@/components/modules/notifications"
-import { MessagesModule } from "@/components/modules/messages"
-import { SettingsModule } from "@/components/modules/settings"
-import { AgendaModule } from "@/components/modules/agenda"
-import { MapModule } from "@/components/modules/map"
-import { TeamModule } from "@/components/modules/team"
-import { ActivityModule } from "@/components/modules/activity"
-import { StandardsModule } from "@/components/modules/standards"
-import { Footer } from "@/components/footer"
+import { useEffect } from "react"
+import { LandingI18nProvider, useLandingI18n } from "@/components/landing/landing-i18n"
+import { LandingHeader } from "@/components/landing/landing-header"
+import { LandingHero } from "@/components/landing/landing-hero"
+import { LandingAbout, LandingFeatures, LandingHowItWorks } from "@/components/landing/landing-sections"
+import { LandingClients } from "@/components/landing/landing-clients"
+import { LandingContact } from "@/components/landing/landing-contact"
+import { LandingFooter } from "@/components/landing/landing-footer"
+import { landingDictionaries } from "@/lib/i18n/landing-dictionaries"
 
-export default function Home() {
-  const view = useNav((s) => s.view)
+/**
+ * Public landing page (route "/").
+ *
+ * Public by design — no authentication required. The authenticated
+ * workspace lives at /app (protected by SignInGate + NextAuth), and all
+ * existing API guards/roles are untouched.
+ *
+ * Portuguese (Mozambique) is the default language; English is available
+ * from the header selector. The document title and description update
+ * with the selected language.
+ */
+function LandingContent() {
+  const { lang, t } = useLandingI18n()
+
+  useEffect(() => {
+    const applyMeta = () => {
+      document.title = t("meta.title")
+      const desc = document.querySelector('meta[name="description"]')
+      if (desc) desc.setAttribute("content", t("meta.description"))
+    }
+    applyMeta()
+    // Next.js re-applies the route's static metadata shortly after hydration,
+    // which would overwrite the language-specific title. Re-assert it a few
+    // times until that pass has settled.
+    const timers = [100, 400, 1200].map((ms) => setTimeout(applyMeta, ms))
+    return () => {
+      timers.forEach((id) => clearTimeout(id))
+      document.title = landingDictionaries.pt["meta.title"]
+    }
+  }, [lang, t])
 
   return (
-    <AppShell>
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1 p-4 lg:p-6 max-w-[1600px] w-full mx-auto">
-          {view === "dashboard" && <DashboardModule />}
-          {view === "inspections" && <InspectionsModule />}
-          {view === "agenda" && <AgendaModule />}
-          {view === "capa" && <CapaModule />}
-          {view === "defects" && <DefectsModule />}
-          {view === "alerts" && <AlertsModule />}
-          {view === "reports" && <ReportsModule />}
-          {view === "activity" && <ActivityModule />}
-          {view === "team" && <TeamModule />}
-          {view === "map" && <MapModule />}
-          {view === "locations" && <LocationsModule />}
-          {view === "templates" && <TemplatesModule />}
-          {view === "standards" && <StandardsModule />}
-          {view === "users" && <UsersModule />}
-          {view === "audit" && <AuditModule />}
-          {view === "settings" && <SettingsModule />}
-          {view === "notifications" && <NotificationsModule />}
-          {view === "messages" && <MessagesModule />}
-        </div>
-        <Footer />
-      </div>
-    </AppShell>
+    <div className="bg-white text-slate-900 antialiased">
+      <a
+        href="#sobre"
+        className="absolute left-4 top-[-3.5rem] z-[60] rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-[top] focus:top-3"
+      >
+        {t("a11y.skip")}
+      </a>
+      <LandingHeader />
+      <main>
+        <LandingHero />
+        <LandingAbout />
+        <LandingFeatures />
+        <LandingHowItWorks />
+        <LandingClients />
+        <LandingContact />
+      </main>
+      <LandingFooter />
+    </div>
+  )
+}
+
+export default function LandingPage() {
+  return (
+    <LandingI18nProvider>
+      <LandingContent />
+    </LandingI18nProvider>
   )
 }

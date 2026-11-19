@@ -23,9 +23,9 @@ const DEMO_ACCOUNTS = [
   { email: "joao@hygiene.co", password: "insp123", role: "Inspector", label: "Field inspections" },
 ]
 
-export function LoginButton() {
+export function LoginButton({ defaultOpen = false }: { defaultOpen?: boolean }) {
   const { data: session, status } = useSession()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
