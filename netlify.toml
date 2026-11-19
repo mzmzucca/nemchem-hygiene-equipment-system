@@ -1,0 +1,27 @@
+# Netlify deployment for the Hygiene Management System (Next.js + Prisma/SQLite)
+#
+# Pipeline per deploy:
+#   1. prisma generate         -> generate the client for the build container
+#   2. prisma db push          -> create the SQLite database from the schema
+#   3. tsx prisma/seed.ts      -> seed demo data (users, locations, inspections)
+#   4. next build              -> build the app (Netlify's Next runtime handles bundling)
+#
+# The seeded DB and the Prisma schema are bundled into the serverless function
+# via included_files, so reads work at runtime. Writes do NOT persist across
+# function invocations (ephemeral serverless) — acceptable for a demo deploy.
+# For production use a hosted database (e.g. Postgres) instead of SQLite.
+
+[build]
+  command = "npx prisma generate && npx prisma db push --skip-generate --accept-data-loss && npx tsx prisma/seed.ts && npx next build"
+
+[build.environment]
+  NODE_VERSION = "20"
+  DATABASE_URL = "file:./db/custom.db"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# Next.js runtime handler: include Prisma schema + seeded database
+[functions."___netlify-handler"]
+  included_files = ["prisma/**"]
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
