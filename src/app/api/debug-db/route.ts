@@ -28,9 +28,18 @@ export async function GET() {
   } catch {
     taskRoot = null
   }
+  // Shape of DATABASE_URL without leaking any credentials:
+  const envUrl = process.env.DATABASE_URL
+  const urlShape = envUrl
+    ? {
+        scheme: envUrl.split(":")[0],
+        isRelativeFile: envUrl.startsWith("file:") && !envUrl.startsWith("file:/"),
+      }
+    : null
   return NextResponse.json({
     cwd,
     envUrlSet: Boolean(process.env.DATABASE_URL),
+    urlShape,
     prismaDir,
     taskRoot,
     candidates: candidates.map((p) => ({ p: p.replace(cwd, "."), exists: fs.existsSync(p) })),

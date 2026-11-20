@@ -7,29 +7,30 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 /**
- * Resolve the SQLite database URL for every hosting context:
- * - absolute/external DATABASE_URL: used as-is;
- * - relative file: URL (e.g. "file:./db/custom.db"): resolved against cwd,
- *   but when that file does not exist the prisma/ copy is used instead
- *   (Vercel/Netlify bundles keep the seeded DB at prisma/db/custom.db);
- * - unset: the bundled seeded database (prisma/db/custom.db).
+ * Resolve the SQLite database URL for every hosting context.
+ *
+ * This app is SQLite-only, so:
+ * - a DATABASE_URL whose file actually exists is honoured (absolute or
+ *   relative — relative URLs are resolved against cwd, then prisma/);
+ * - anything else (unset, incompatible scheme, missing file) falls back
+ *   to the bundled seeded database (prisma/db/custom.db), which next.config
+ *   traces into every serverless function bundle.
  */
 function resolveDatabaseUrl(): string {
   const bundled = `file:${path.join(process.cwd(), 'prisma', 'db', 'custom.db')}`
   const env = process.env.DATABASE_URL
-  if (!env) return bundled
-  if (env.startsWith('file:')) {
+  if (env && env.startsWith('file:')) {
     const raw = env.slice('file:'.length)
-    if (raw && !path.isAbsolute(raw)) {
-      const cwdRelative = path.join(process.cwd(), raw)
-      const prismaRelative = path.join(process.cwd(), 'prisma', raw)
-      if (!fs.existsSync(cwdRelative) && fs.existsSync(prismaRelative)) {
-        return `file:${prismaRelative}`
-      }
-      return `file:${cwdRelative}`
-    }
+    const direct = raw && path.isAbsolute(raw) ? raw : undefined
+    const candidates = direct
+      ? [direct]
+      : raw
+        ? [path.join(process.cwd(), raw), path.join(process.cwd(), 'prisma', raw)]
+        : []
+    const existing = candidates.find((c) => fs.existsSync(c))
+    if (existing) return `file:${existing}`
   }
-  return env
+  return bundled
 }
 
 const dbClient = new PrismaClient({
