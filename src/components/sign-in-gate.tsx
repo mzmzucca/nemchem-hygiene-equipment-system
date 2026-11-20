@@ -1,18 +1,19 @@
 "use client"
 
-import { Suspense, type ReactNode } from "react"
+import { Suspense, useEffect, type ReactNode } from "react"
+import Link from "next/link"
 import { useSession } from "next-auth/react"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ShieldCheck } from "lucide-react"
-import { LoginButton } from "@/components/login-button"
+import { Button } from "@/components/ui/button"
 
 /**
  * Client-side gate for the protected workspace (/app).
  *
  * - While the session is loading: neutral splash.
- * - Unauthenticated: renders a sign-in card that reuses the EXISTING
- *   LoginButton (dialog included) — no duplicated authentication logic.
- *   Auto-opens the dialog when arriving from the landing page (?signin=1).
+ * - Unauthenticated: renders a compact "Área reservada" card linking to the
+ *   dedicated /login screen. Arriving from the landing page (?signin=1)
+ *   redirects straight there.
  * - Authenticated: renders the workspace normally.
  *
  * Server-side API behaviour is unchanged (demo fallback preserved).
@@ -27,8 +28,15 @@ export function SignInGate({ children }: { children: ReactNode }) {
 
 function GateInner({ children }: { children: ReactNode }) {
   const { status } = useSession()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const autoOpen = searchParams.get("signin") === "1"
+
+  useEffect(() => {
+    if (status === "unauthenticated" && autoOpen) {
+      router.replace("/login")
+    }
+  }, [status, autoOpen, router])
 
   if (status === "loading") {
     return (
@@ -55,7 +63,9 @@ function GateInner({ children }: { children: ReactNode }) {
             </p>
           </div>
           <div className="flex justify-center">
-            <LoginButton defaultOpen={autoOpen} />
+            <Button asChild size="sm" className="gap-2">
+              <Link href="/login">Ir para o login</Link>
+            </Button>
           </div>
         </div>
       </div>

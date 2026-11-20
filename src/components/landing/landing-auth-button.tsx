@@ -9,8 +9,7 @@ import { useLandingI18n } from "@/components/landing/landing-i18n"
  * Authentication-aware landing CTA.
  *
  * Reuses the existing NextAuth session state — it does NOT implement any
- * authentication logic. Guests are sent to the existing sign-in dialog
- * (the /app route opens the LoginButton dialog when ?signin=1);
+ * authentication logic. Guests go to the dedicated /login screen;
  * authenticated users go straight to the role-adaptive workspace.
  */
 export function LandingAuthButton({
@@ -26,7 +25,7 @@ export function LandingAuthButton({
   const { t } = useLandingI18n()
 
   const authenticated = status === "authenticated"
-  const href = authenticated ? "/app" : "/app?signin=1"
+  const href = authenticated ? "/app" : "/login"
 
   return (
     <Button asChild variant={variant} size={size} className={className}>
